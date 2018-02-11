@@ -78,21 +78,40 @@ type
 
   Buffer* = BufferOwned | BufferShared
 
-
+proc pixel*[T](r, g, b, a: T): Pixel
+  ## creates a pixel with the color rgba(r, g, b, a)
+proc color*[T](r, g, b: T): Pixel
+  ## creates a pixel with the color rgba(r, g, b, 255)
+proc color*(): Pixel
+  ## creates a black pixel
 proc newBuffer*(w, h: int): Buffer
+  ## creates a pixel buffer
 proc newBufferShared*(pixels: pointer, w, h: int): Buffer
+  ## creates a pixel buffer that shares its pixels with another object
 proc cloneBuffer*(src: Buffer): Buffer
+  ## creates a copy of the buffer
 proc loadPixels*(buf: Buffer, src: openarray[uint8], fmt: PixelFormat)
+  ## loads the data from `src` into the buffer using the given pixel format
 proc loadPixels8*(buf: var Buffer, src: openarray[uint8], pal: openarray[Pixel])
+  ## loads the data from `src` into the buffer using the given palette
 proc loadPixels8*(buf: var Buffer, src: openarray[uint8])
+  ## loads the data from `src` into the buffer, using it set the alpha of all its pixels
 proc setBlend*(buf: var Buffer, blend: BlendMode)
+  ## sets the buffer's blend mode
 proc setAlpha*[T](buf: var Buffer, alpha: T)
+  ## sets the buffer's alpha
 proc setColor*(buf: var Buffer, c: Pixel)
+  ## sets the buffer's color
 proc setClip*(buf: var Buffer, r: Rect)
+  ## sets the buffer's clipping rectanlge
 proc reset*(buf: var Buffer)
+  ## resets the buffer to a default state
 proc clear*(buf: Buffer, c: Pixel)
+  ## sets the buffer's blend mode
 proc getPixel*(buf: Buffer, x: int, y: int): Pixel
+  ## gets the pixels at (x, y) on the buffer
 proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int)
+  ## sets the pixels at (x, y) on the buffer
 
 # proc copyPixels*(buf: Buffer, src: Buffer, x: int, y: int, sub:  Rect, sx: float, sy: float)
 # proc noise*(buf: Buffer, seed: cuint, low: int, high: int, grey: int)
@@ -146,18 +165,15 @@ proc rand128(s: var RandState): uint =
   return s.w
 
 proc pixel*[T](r, g, b, a: T): Pixel =
-  ## creates a pixel with the color rgba(r, g, b, a)
   result.rgba.r = uint8(clamp(r, 0, 0xff))
   result.rgba.g = uint8(clamp(g, 0, 0xff))
   result.rgba.b = uint8(clamp(b, 0, 0xff))
   result.rgba.a = uint8(clamp(a, 0, 0xff))
 
 proc color*[T](r, g, b: T): Pixel =
-  ## creates a pixel with the color rgba(r, g, b, 255)
   return pixel(r, g, b, 0xff)
 
 proc color*(): Pixel =
-  ## creates a black pixel
   return color(0, 0, 0)
 
 proc clipRect(r: var Rect, to: Rect) =
@@ -185,25 +201,21 @@ proc clipRectAndOffset(r: var Rect, x, y: var int, to: Rect) =
     r.h -= (y + r.h) - (to.y + to.h)
 
 proc newBuffer*(w, h: int): Buffer =
-  ## creates a pixel buffer
   result = new BufferOwned
   result.pixels = repeat(color(0, 0, 0), w * h)
   result.w = w; result.h = h
   result.reset()
 
 proc newBufferShared*(pixels: pointer, w, h: int): Buffer =
-  ## creates a pixel buffer that shares its pixels with another object
   result = new BufferShared
   result.pixels = pixels
   result.w = w; result.h = h
   result.reset()
 
 proc cloneBuffer*(src: Buffer): Buffer =
-  ## creates a copy of the buffer
   deepCopy(result, src)
 
 proc loadPixels*(buf: Buffer, src: openarray[uint8], fmt: PixelFormat) =
-  ## loads the data from `src` into the buffer using the given pixel format
   var sr, sg, sb, sa: int
   let sz = (buf.w * buf.h) - 1
   case fmt:
@@ -219,55 +231,45 @@ proc loadPixels*(buf: Buffer, src: openarray[uint8], fmt: PixelFormat) =
     buf.pixels[i].rgba.a = (src[i] shr sa) and 0xff
 
 proc loadPixels8*(buf: var Buffer, src: openarray[uint8], pal: openarray[Pixel]) =
-  ## loads the data from `src` into the buffer using the given palette
   let sz = (buf.w * buf.h) - 1
   for i in countdown(sz, 0):
     buf.pixels[i] = pal[src[i]]
 
 proc loadPixels8*(buf: var Buffer, src: openarray[uint8]) =
-  ## loads the data from `src` into the buffer, using it set the alpha of all its pixels
   let sz = (buf.w * buf.h) - 1
   for i in countdown(sz, 0):
     buf.pixels[i] = pixel(0xff'u8, 0xff'u8, 0xff'u8, src[i])
 
 proc setBlend*(buf: var Buffer, blend: BlendMode) =
-  ## sets the buffer's blend mode
   buf.mode.blend = blend
 
 proc setAlpha*[T](buf: var Buffer, alpha: T) =
-  ## sets the buffer's alpha
   buf.mode.alpha = clamp(alpha, 0, 0xff)  
 
 proc setColor*(buf: var Buffer, c: Pixel) =
-  ## sets the buffer's color
   buf.mode.color.word = c.word & RGB_MASK 
 
 proc setClip*(buf: var Buffer, r: Rect) =
-  ## sets the buffer's clipping rectanlge
   buf.clip = r
   var r = Rect(0, 0, buf.w, buf.h)
   clipRect(buf.clip, r)
 
 proc reset*(buf: var Buffer) =
-  ## resets the buffer to a default state
   buf.setBlend(ALPHA)
   buf.setAlpha(0xff)
   buf.setColor color(0xff, 0xff, 0xff)
   buf.setClip Rect(0, 0, buf.w, buf.h)
 
 proc clear*(buf: Buffer, c: Pixel) =
-  ## sets the buffer's blend mode
   for pixel in mitems(buf.pixels):
     pixel = c
 
 proc getPixel*(buf: Buffer, x: int, y: int): Pixel =
-  ## gets the pixels at (x, y) on the buffer
   if (x >= 0 and y >= 0 and x < buf.w and y < buf.h):
     return buf.pixels[x + y * buf.w]
   result.word = 0
 
 proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int) =
-  ## sets the pixels at (x, y) on the buffer
   if (x >= 0 and y >= 0 and x < buf.w and y < buf.h):
     buf.pixels[x + y * buf.w] = c
 
