@@ -5,7 +5,7 @@ author        = "emekoi"
 description   = "a nim library for drawing 2d shapes and images to 32bit software pixel buffers"
 license       = "MIT"
 srcDir        = "src"
-skipDirs      = @["private"]
+skipDirs      = @["docs, private"]
 
 # Dependencies
 
