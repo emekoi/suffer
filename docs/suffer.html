@@ -1271,19 +1271,19 @@ function main() {
   <li><a class="reference" href="#loadPixels,Buffer,openArray[uint8],PixelFormat"
     title="loadPixels(buf: Buffer; src: openArray[uint8]; fmt: PixelFormat)"><wbr />load<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#loadPixels8,Buffer,openArray[uint8],openArray[Pixel]"
-    title="loadPixels8(buf: var Buffer; src: openArray[uint8]; pal: openArray[Pixel])"><wbr />load<wbr />Pixels8<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+    title="loadPixels8(buf: Buffer; src: openArray[uint8]; pal: openArray[Pixel])"><wbr />load<wbr />Pixels8<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#loadPixels8,Buffer,openArray[uint8]"
-    title="loadPixels8(buf: var Buffer; src: openArray[uint8])"><wbr />load<wbr />Pixels8<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+    title="loadPixels8(buf: Buffer; src: openArray[uint8])"><wbr />load<wbr />Pixels8<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#setBlend,Buffer,BlendMode"
-    title="setBlend(buf: var Buffer; blend: BlendMode)"><wbr />set<wbr />Blend<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+    title="setBlend(buf: Buffer; blend: BlendMode)"><wbr />set<wbr />Blend<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#setAlpha,Buffer,T"
-    title="setAlpha[T](buf: var Buffer; alpha: T)"><wbr />set<wbr />Alpha<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+    title="setAlpha[T](buf: Buffer; alpha: T)"><wbr />set<wbr />Alpha<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#setColor,Buffer,Pixel"
-    title="setColor(buf: var Buffer; c: Pixel)"><wbr />set<wbr />Color<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+    title="setColor(buf: Buffer; c: Pixel)"><wbr />set<wbr />Color<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#setClip,Buffer,Rect"
-    title="setClip(buf: var Buffer; r: Rect)"><wbr />set<wbr />Clip<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+    title="setClip(buf: Buffer; r: Rect)"><wbr />set<wbr />Clip<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#reset,Buffer"
-    title="reset(buf: var Buffer)"><wbr />reset<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+    title="reset(buf: Buffer)"><wbr />reset<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#clear,Buffer,Pixel"
     title="clear(buf: Buffer; c: Pixel)"><wbr />clear<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#getPixel,Buffer,int,int"
@@ -1403,37 +1403,37 @@ creates a copy of the buffer
 loads the data from <cite>src</cite> into the buffer using the given pixel format
 
 </dd>
-<dt id="loadPixels8"><a name="loadPixels8,Buffer,openArray[uint8],openArray[Pixel]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels8</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">pal</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">Pixel</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
+<dt id="loadPixels8"><a name="loadPixels8,Buffer,openArray[uint8],openArray[Pixel]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels8</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">pal</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">Pixel</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
 <dd>
 loads the data from <cite>src</cite> into the buffer using the given palette
 
 </dd>
-<dt id="loadPixels8"><a name="loadPixels8,Buffer,openArray[uint8]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels8</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
+<dt id="loadPixels8"><a name="loadPixels8,Buffer,openArray[uint8]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels8</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
 <dd>
 loads the data from <cite>src</cite> into the buffer, using it set the alpha of all its pixels
 
 </dd>
-<dt id="setBlend"><a name="setBlend,Buffer,BlendMode"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setBlend</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">blend</span><span class="Other">:</span> <span class="Identifier">BlendMode</span><span class="Other">)</span></pre></dt>
+<dt id="setBlend"><a name="setBlend,Buffer,BlendMode"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setBlend</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">blend</span><span class="Other">:</span> <span class="Identifier">BlendMode</span><span class="Other">)</span></pre></dt>
 <dd>
 sets the buffer's blend mode
 
 </dd>
-<dt id="setAlpha"><a name="setAlpha,Buffer,T"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setAlpha</span><span class="Other">[</span><span class="Identifier">T</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">alpha</span><span class="Other">:</span> <span class="Identifier">T</span><span class="Other">)</span></pre></dt>
+<dt id="setAlpha"><a name="setAlpha,Buffer,T"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setAlpha</span><span class="Other">[</span><span class="Identifier">T</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">alpha</span><span class="Other">:</span> <span class="Identifier">T</span><span class="Other">)</span></pre></dt>
 <dd>
 sets the buffer's alpha
 
 </dd>
-<dt id="setColor"><a name="setColor,Buffer,Pixel"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setColor</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">)</span></pre></dt>
+<dt id="setColor"><a name="setColor,Buffer,Pixel"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setColor</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">)</span></pre></dt>
 <dd>
 sets the buffer's color
 
 </dd>
-<dt id="setClip"><a name="setClip,Buffer,Rect"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setClip</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">)</span></pre></dt>
+<dt id="setClip"><a name="setClip,Buffer,Rect"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setClip</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">)</span></pre></dt>
 <dd>
 sets the buffer's clipping rectanlge
 
 </dd>
-<dt id="reset"><a name="reset,Buffer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">reset</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">Buffer</span><span class="Other">)</span></pre></dt>
+<dt id="reset"><a name="reset,Buffer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">reset</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">)</span></pre></dt>
 <dd>
 resets the buffer to a default state
 
@@ -1445,12 +1445,12 @@ sets the buffer's blend mode
 </dd>
 <dt id="getPixel"><a name="getPixel,Buffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Pixel</span></pre></dt>
 <dd>
-gets the pixels at (x, y) on the buffer
+gets the color of the pixel at (x, y) on the buffer
 
 </dd>
 <dt id="setPixel"><a name="setPixel,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
 <dd>
-sets the pixels at (x, y) on the buffer
+sets the color of the pixel at (x, y) on the buffer
 
 </dd>
 
@@ -1463,7 +1463,7 @@ sets the pixels at (x, y) on the buffer
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-02-10 19:42:49 UTC</small>
+        <small>Made with Nim. Generated: 2018-02-12 00:56:20 UTC</small>
       </div>
     </div>
   </div>
