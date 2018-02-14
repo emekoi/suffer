@@ -280,28 +280,24 @@ proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int) =
 
 proc copyPixelsBasic(buf, src: Buffer, x, y: int, sub: Rect) =
   # Clip to destination buffer
-  clipRectAndOffset(var sub, var x, var y, buf.clip)
+  var (x, y, sub) = (x, y, sub)
+  clipRectAndOffset(sub, x, y, buf.clip)
   # Clipped off screen?
   if sub.w <= 0 or sub.h <= 0: return
   # Copy pixels
   for i in 0..<sub.h:
-    case buf
-    of BufferOwned:
-      case src:
-      of BufferOwned:
-        buf.pixels[(x + (y + i) * buf.w)..sub.w]
-      of BufferShared:
-        discard
-    of BufferShared:
-      case src:
-      of BufferOwned:
-        discard
-      of BufferShared:
-        discard
-    # copyMem addr buf.pixels, addr src.pix
-    # memcpy(b->pixels + x + (y + i) * b->w,
-    #        src->pixels + s.x + (s.y + i) * src->w,
-    #        s.w * sizeof(*b->pixels));
+    copyMem(
+      (case buf:
+        of BufferOwned:
+          addr buf.pixels[0]
+        of BufferShared:
+          buf.pixels) + (x + (y + i) * buf.w),
+      (case src:
+        of BufferOwned:
+          addr src.pixels[0]
+        of BufferShared:
+          src.pixels) + (sub.x + (sub.y + i) * src.w),
+      sub.w * sizeof(buf.pixel[]))
 
 # proc copyPixels*(buf: Buffer, src: Buffer, x: int, y: int, sub:  Rect, sx: float, sy: float)
 # proc noise*(buf: Buffer, seed: cuint, low: int, high: int, grey: int)
