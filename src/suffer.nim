@@ -12,9 +12,6 @@ import
   sequtils,
   math
 
-proc box[T](x: T): ref T =
-  new(result); result[] = x
-
 when defined(MODE_RGBA):
   const RGB_MASK = 0x00FFFFFF
 elif defined(MODE_ARGB):
@@ -112,17 +109,40 @@ proc getPixel*(buf: Buffer, x: int, y: int): Pixel
   ## gets the color of the pixel at (x, y) on the buffer
 proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int)
   ## sets the color of the pixel at (x, y) on the buffer
+proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: var float)
+  ## copies the pixels from one buffer to another
+proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: var float)
+  ## copies the pixels from one buffer to another
+proc noise*(buf: Buffer, seed: uint, low: int, high: int, grey: int)
+  ## fills the buffer with psuedo-random noise in the form of pixels
+proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int)
+  ## fills the pixel (x, y) and all surrounding pixels of the same color with the color `c`
+proc drawPixel*(buf: Buffer, c: Pixel, x: int, y: int)
+  ## draws a pixel of color `c` at (x, y)
+proc drawLine*(buf: Buffer, c: Pixel, x0: int, y0: int, x1: int, y1: int)
+  ## draws a line of color `c` through (x0, y0), (x1, y1) 
+proc drawRect*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int)
+  ## draws a rect with the dimensions w X h, of color `c` at (x, y)
+proc drawBox*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int)
+  ## draws a box with the dimensions w X h, of color `c` at (x, y) 
+proc drawCircle*(buf: Buffer, c: Pixel, x: int, y: int, r: int)
+  ## draws a circle with radius of `r` and color of `c` at (x, y)
+proc drawRing*(buf: Buffer, c: Pixel, x: int, y: int, r: int)
+  ## draws a ring with a radius of `r` and color of `c` at (x, y)
+proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub: Rect, t: Transform)
+  ## draw the Buffer `src` at (x, y) with a clipping rect of `sub` and a transform of `t`
+proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub: Rect)
+  ## draw the Buffer `src` at (x, y) with a clipping rect of `sub`
+proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, t: Transform)
+  ## draw the Buffer `src` at (x, y) with a transform of `t`
+proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int)
+  ## draw the Buffer `src` at (x, y)
 
-# proc copyPixels*(buf: Buffer, src: Buffer, x: int, y: int, sub:  Rect, sx: float, sy: float)
-# proc noise*(buf: Buffer, seed: cuint, low: int, high: int, grey: int)
-# proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int)
-# proc drawPixel*(buf: Buffer, c: Pixel, x: int, y: int)
-# proc drawLine*(buf: Buffer, c: Pixel, x0: int, y0: int, x1: int, y1: int)
-# proc drawRect*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int)
-# proc drawBox*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int)
-# proc drawCircle*(buf: Buffer, c: Pixel, x: int, y: int, r: int)
-# proc drawRing*(buf: Buffer, c: Pixel, x: int, y: int, r: int)
-# proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub:  Rect, t:  Transform)
+# proc box[T](x: T): ref T =
+#   new(result); result[] = x
+
+proc `[]`(p: pointer, offset: int): pointer =
+  return cast[pointer](uint(cast[int](p) + offset))
 
 proc lerp[T](bits, a, b, p: T): T =
   return (a + (b - a) * p) shr bits
@@ -152,6 +172,11 @@ proc xdiv[T](n, x: T): T =
   if x == 0: return n
   return n div x
 
+proc check(cond: bool, fname: string, msg: string) =
+  if not cond: 
+    write(stderr, "(error)" & fname & " " & msg & "\n")
+    quit(QuitFailure)
+
 proc rand128init(seed: uint): RandState =
   result = new RandState
   result.x = (seed and 0xff000000'u) or 1'u
@@ -177,6 +202,9 @@ proc color*[T](r, g, b: T): Pixel =
 proc color*(): Pixel =
   return color(0, 0, 0)
 
+converter fromU32(word: uint32): Pixel =
+  result.word = word
+
 proc clipRect(r: var Rect, to: Rect) =
   let
     x1 = max(r.x, to.x)
@@ -190,16 +218,13 @@ proc clipRect(r: var Rect, to: Rect) =
 
 
 proc clipRectAndOffset(r: var Rect, x, y: var int, to: Rect) =
-  if to.x - x > 0:
-    let d = to.x - x
-    x += d; r.w -= d; r.x += d;
-  if to.y - y > 0:
-    let d = to.y - y
-    y += d; r.h -= d; r.y += d;
-  if (x + r.w) - (to.x + to.w) > 0:
-    r.w -= (x + r.w) - (to.x + to.w)
-  if (y + r.h) - (to.y + to.h) > 0:
-    r.h -= (y + r.h) - (to.y + to.h)
+  var d: int
+  if (d = to.x - x; d) > 0:
+    x += d; r.w -= d; r.x += d
+  if (d = to.y - y; d) > 0:
+    y += d; r.h -= d; r.y += d
+  if (d = (x + r.w) - (to.x + to.w); d) > 0: r.w -= d
+  if (d = (y + r.h) - (to.y + to.h); d) > 0: r.h -= d
 
 proc initBuffer(buf: Buffer, w, h: int) =
   buf.w = w; buf.h = h
@@ -207,6 +232,8 @@ proc initBuffer(buf: Buffer, w, h: int) =
 
 proc newBuffer*(w, h: int): Buffer =
   result = new BufferOwned
+  check(w > 0, "newBuffer", "expected width of 1 or greater")
+  check(h > 0, "newBuffer", "expected height of 1 or greater")
   result.pixels = repeat(color(0, 0, 0), w * h)
   # initialize the buffer
   initBuffer(result, w, h)
@@ -291,21 +318,130 @@ proc copyPixelsBasic(buf, src: Buffer, x, y: int, sub: Rect) =
         of BufferOwned:
           addr buf.pixels[0]
         of BufferShared:
-          buf.pixels) + (x + (y + i) * buf.w),
+          buf.pixels)[x + (y + i) * buf.w],
       (case src:
         of BufferOwned:
           addr src.pixels[0]
         of BufferShared:
-          src.pixels) + (sub.x + (sub.y + i) * src.w),
+          src.pixels)[sub.x + (sub.y + i) * src.w],
       sub.w * sizeof(buf.pixel[]))
 
-# proc copyPixels*(buf: Buffer, src: Buffer, x: int, y: int, sub:  Rect, sx: float, sy: float)
-# proc noise*(buf: Buffer, seed: cuint, low: int, high: int, grey: int)
-# proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int)
-# proc drawPixel*(buf: Buffer, c: Pixel, x: int, y: int)
-# proc drawLine*(buf: Buffer, c: Pixel, x0: int, y0: int, x1: int, y1: int)
-# proc drawRect*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int)
-# proc drawBox*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int)
-# proc drawCircle*(buf: Buffer, c: Pixel, x: int, y: int, r: int)
-# proc drawRing*(buf: Buffer, c: Pixel, x: int, y: int, r: int)
-# proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub:  Rect, t:  Transform)
+proc copyPixelsScaled(buf, src: Buffer, x, y: int, sub: Rect, scalex, scaley: float) =
+  var
+    d: int
+    (w, h) = (sub.w * scalex, sub.h * scaley)
+    (inx, iny) = (FX_UNIT / scalex, FX_UNIT / scaley)
+  # Clip to destination buffer  
+  if (d = buf.clip.x - x; d) > 0:
+    x += d; sub.x += d / scalex; w -= d;
+  if (d = buf.clip.y - y; d) > 0:
+    y += d; sub.y += d / scaley; h -= d;
+  if (d = (x + w) - (buf.clip.x + buf.clip.w); d) > 0: w -= d
+  if (d = (y + h) - (buf.clip.y + buf.clip.h); d) > 0: h -= d
+  # Clipped offscreen
+  if w == 0 or h == 0: return
+  # Draw
+  var sy = sub.y shl FX_BITS
+  for dy in dy..<(y + h):
+    var
+      sx = 0
+      dx = x + buf.w * dy
+    let
+      pixels = (case src:
+        of BufferOwned:
+          addr src.pixels[0]
+        of BufferShared:
+          src.pixels)[(sub.x shr FX_BITS) + src.w * (sy shr FX_BITS)]
+      edx = dx + w
+    while dx < edx:
+      buf.pixels[(dx += 1; dx)] = pixels[sx shr FX_BITS]
+      sx += inx
+    sy += iny
+
+proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: var float) =
+  let (sx, sy) = (abs(sx), abs(sy))
+  if sx == 0 or sy == 0: return
+  if sub.w <= 0 or sub.h <= 0: return
+  check sub.x >= 0 and sub.y >= 0 and sub.x + sub.w <= src.w and sub.y + sub.h <= src.h,
+    "copyPixels", "sub rectangle out of bounds"
+  # Dispatch
+  if (sx == 1 and sy == 1):
+  # Basic un-scaled copy
+    copyPixelsBasic(buf, src, x, y, sub)
+  else:
+  # Scaled copy
+    copyPixelsScaled(buf, src, x, y, sub, sx, sy)
+
+proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: var float) =
+  copyPixels(buf, src, x, y, Rect(0, 0, src.w, src.h), sx, sy)
+
+proc noise*(buf: Buffer, seed: uint, low: int, high: int, grey: int) =
+  var 
+    s = rand128init(seed)
+    low = clamp(low, 0, 0xfe)
+    high = clamp(high, low + 1, 0xff)
+  if grey:
+    for i in countdown(buf.w * buf.h, 0):
+      buf.pixels[i].rgba.r = low + rand128(&s) % (high - low)
+      buf.pixels[i].rgba.g = buf.pixels[i].rgba.r
+      buf.pixels[i].rgba.b = buf.pixels[i].rgba.r
+      buf.pixels[i].rgba.a = 0xff
+  else:
+    for i in countdown(buf.w * buf.h, 0):
+      buf.pixels[i].word = rand128(&s) or (not RGB_MASK)
+      buf.pixels[i].rgba.r = low + buf.pixels[i].rgba.r % (high - low)
+      buf.pixels[i].rgba.g = low + buf.pixels[i].rgba.g % (high - low)
+      buf.pixels[i].rgba.b = low + buf.pixels[i].rgba.b % (high - low)
+
+proc floodFill(buf: Buffer, c, o: Pixel, x, y: int) =
+  if
+    y < 0 or y >= buf.h or x < 0 or x >= buf.wor||
+    buf.pixels[x + y * buf.w].word != o.word: return
+  # Fill left
+  var il = x
+  while il >= 0 and buf.pixels[il + y * buf.w].word == o.word:
+    buf.pixels[il + y * buf.w] = c;
+    il -= 1
+  # Fill right
+  var ir = if x < buf.w - 1: x + 1 else: x
+  while ir < buf.w and buf.pixels[ir + y * buf.w].word == o.word:
+    buf.pixels[ir + y * buf.w] = c;
+    ir += 1
+  # Fill up and down
+  while il <= ir:
+    floodFill(buf, c, o, il, y - 1)
+    floodFill(buf, c, o, il, y + 1)
+    il += 1
+
+proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int) =
+  floodFill(buf, c, buf.getPixel(x, y), x, y)
+
+proc drawPixel*(buf: Buffer, c: Pixel, x: int, y: int) =
+  discard
+
+proc drawLine*(buf: Buffer, c: Pixel, x0: int, y0: int, x1: int, y1: int) =
+  discard
+
+proc drawRect*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int) =
+  discard
+
+proc drawBox*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int) =
+  discard
+
+proc drawCircle*(buf: Buffer, c: Pixel, x: int, y: int, r: int) =
+  discard
+
+proc drawRing*(buf: Buffer, c: Pixel, x: int, y: int, r: int) =
+  discard
+
+proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub: Rect, t: Transform) =
+  discard
+
+proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub: Rect) =
+  discard
+
+proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, t: Transform) =
+  discard
+
+proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int) =
+  discard

@@ -1,5 +1,4 @@
-import
-  sera
+
 
 import sdl2/sdl
 
@@ -53,11 +52,8 @@ var
   app = App(window: nil)
 
 if init(app):
-  var buff = newBufferShared(app.window.getWindowSurface().pixels, ScreenW, ScreenH)
-  var b = newBuffer(255, 150)
-  b.floodFill(color(255, 0, 255), 0,0)
-  buff.drawBuffer(b, 200, 0, nil, nil)
-  discard app.window.updateWindowSurface()
+  let prt =  app.window.getWindowSurface().pixels
+
   # Pause for two seconds
   sdl.delay(2000)
 
