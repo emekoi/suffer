@@ -1,6 +1,6 @@
-
-
-import sdl2/sdl
+import 
+  sdl2/sdl,
+  ../suffer
 
 
 const
@@ -11,7 +11,7 @@ const
 
 
 type
-  App= ref object
+  App = ref object
     window*: sdl.Window # Window pointer
 
 
@@ -33,7 +33,6 @@ proc init(app: App): bool =
   if app.window == nil:
     echo "ERROR: Can't create window: ", sdl.getError()
     return false
-
   echo "SDL initialized successfully"
   return true
 
@@ -52,8 +51,9 @@ var
   app = App(window: nil)
 
 if init(app):
-  let prt =  app.window.getWindowSurface().pixels
-
+  let screen = newBufferShared(app.window.getWindowSurface.pixels, ScreenW, ScreenH)
+  screen.drawRing(color(255, 0, 255), 0, 0, 64)
+  discard sdl.updateWindowSurface(app.window)
   # Pause for two seconds
   sdl.delay(2000)
 

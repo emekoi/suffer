@@ -475,7 +475,8 @@ proc drawPixel*(buf: Buffer, c: Pixel, x, y: int) =
   if
     x >= buf.clip.x and x < buf.clip.x + buf.clip.w and
     y >= buf.clip.y and y < buf.clip.y + buf.clip.h:
-    blendPixel(buf.mode, addr buf.pixels[x + y * buf.w], c);
+      var p = buf.pixels[x + y * buf.w]
+      blendPixel(buf.mode, p.addr, c);
 
 proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int) =
   let steep = abs(y1 - y0) > abs(x1 - x0)
@@ -511,8 +512,8 @@ proc drawRect*(buf: Buffer, c: Pixel, x, y, w, h: int) =
   for y in countdown(r.h - 1, 0):
     var i = 0
     for x in countdown(r.w - 1, 0):
-      var pixel = buf.pixels[(r.x + (r.y + y) * buf.w) + x].addr
-      blendPixel(buf.mode, pixel, c)
+      var pixel = buf.pixels[(r.x + (r.y + y) * buf.w) + x]
+      blendPixel(buf.mode, pixel.addr, c)
 
 proc drawBox*(buf: Buffer, c: Pixel, x, y, w, h: int) =
   buf.drawRect(c, x + 1, y, w - 1, 1)
@@ -576,14 +577,83 @@ proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int) =
       dx -= 1
       radiusError += 2 * (dy - dx + 1)
 
-proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
+proc drawBufferBasic(buf: Buffer, src: Buffer, x, y: int, sub: Rect) =
+  # Clip to destination buffer
+  var (sub, x, y) = (sub, x, y)
+  clipRectAndOffset(sub, x, y, buf.clip)
+  # Clipped off screen?
+  if sub.w <= 0 or sub.h <= 0: return
+  # Draw
+  for iy in 0..<sub.h:
+    var pd = buf.pixels[x + (y + iy) * buf.w].addr
+    var ps = src.pixels[sub.x + (sub.y + iy) * src.w].addr
+    for i in 0..<sub.w:
+      blendPixel(buf.mode, pd[i], ps[i][])
+
+proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
+  let
+    absSx = if t.sx < 0: -t.sx else: t.sx
+    absSy = if t.sy < 0: -t.sy else: t.sy
+    osx = if t.sx < 0: (sub.w shl FX_BITS) - 1 else: 0
+    osy = if t.sy < 0: (sub.h shl FX_BITS) - 1 else: 0
+    ix = ((sub.w shl FX_BITS).float / t.sx / sub.w.float).int
+    iy = ((sub.h shl FX_BITS).float / t.sy / sub.h.float).int
+  var
+    w = (sub.w.float * absSx + 0.5).floor.int
+    h = (sub.h.float * absSy + 0.5).floor.int
+  # Adjust x/y depending on origin
+  x = (x.float - (if t.sx < 0: w else: 0) - (if t.sx < 0: -1 else: 1) * t.ox * absSx).nt
+  y = (y.float - (if t.sy < 0: h else: 0) - (if t.sy < 0: -1 else: 1) * t.oy * absSy).nt
+  # Clipped completely offscreen horizontally?
+  if x + w < buf.clip.x or x > buf.clip.x + buf.clip.w: return
+  # Adjust for clipping
+  var
+    d = 0
+    dy = 0
+    odx = 0
+  if (d = (buf.clip.y - y); d) > 0: dy = d;  sub.y += d / t.sy
+  if (d = (buf.clip.x - x); d) > 0: odx = d; sub.x += d / t.sx
+  if (d = (y + h) - (buf.clip.y + buf.clip.h); d) > 0: h -= d
+  if (d = (x + w) - (buf.clip.x + buf.clip.w); d) > 0: w -= d
+  # Draw
+  var sy = osy
+  while dy < h:
+    var dx = odx
+    var sx = osx;
+    while dx < w:
+      blendPixel(buf.mode, buf.pixels[(x + dx) + (y + dy) * buf.w].addr,
+                 src.pixels[(sub.x + (sx shr FX_BITS)) +
+                             (sub.y + (sy shr FX_BITS)) * src.w])
+      sx += ix
+      dx += 1
+    sy += iy
+    dy += 1
+
+proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
   discard
+
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
+  var (x, y, t) = (x, y, t)
+  # Move rotation value into 0..PI2 range
+  t.r = mod(mod(t.r, PI2) + PI2, PI2)
+  # Not rotated or scaled? apply offset and draw basic
+  if t.r == 0 and t.sx == 1 and t.sy == 1:
+    x -= t.ox; y -= t.oy
+    drawBufferBasic(buf, src, x, y, sub)
+  elif t.r == 0:
+    drawBufferScaled(buf, src, x, y, sub, t)
+  else:
+    drawBufferRotatedScaled(buf, src, x, y, sub, t)
 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect) =
-  discard
+  var sub = sub
+  if sub.w <= 0 or sub.h <= 0: return
+  check(sub.x >= 0 and sub.y >= 0 and sub.x + sub.w <= src.w and sub.y + sub.h <= src.h,
+        "drawBuffer", "sub rectangle out of bounds")
+  drawBufferBasic(buf, src, x, y, sub)
 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, t: Transform) =
-  discard
+  drawBuffer(buf, src, x, y, (0, 0, src.w, src.h), t)
 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int) =
-  discard
+  drawBufferBasic(buf, src, x, y, (0, 0, src.w, src.h))
