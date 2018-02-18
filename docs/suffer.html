@@ -1221,10 +1221,11 @@ function main() {
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#PixelFormat"
     title="PixelFormat = enum
-  BGRA, RGBA, ARGB, ABGR"><wbr />Pixel<wbr />Format<span class="attachedType" style="visibility:hidden"></span></a></li>
+  FMT_BGRA, FMT_RGBA, FMT_ARGB, FMT_ABGR"><wbr />Pixel<wbr />Format<span class="attachedType" style="visibility:hidden"></span></a></li>
   <li><a class="reference" href="#BlendMode"
     title="BlendMode = enum
-  ALPHA, COLOR, ADD, SUBTRACT, MULTIPLY, LIGHTEN, DARKEN, SCREEN, DIFFERENCE"><wbr />Blend<wbr />Mode<span class="attachedType" style="visibility:hidden"></span></a></li>
+  BLEND_ALPHA, BLEND_COLOR, BLEND_ADD, BLEND_SUBTRACT, BLEND_MULTIPLY, BLEND_LIGHTEN,
+  BLEND_DARKEN, BLEND_SCREEN, BLEND_DIFFERENCE"><wbr />Blend<wbr />Mode<span class="attachedType" style="visibility:hidden"></span></a></li>
   <li><a class="reference" href="#Pixel"
     title="Pixel = object
   word*: uint32
@@ -1290,6 +1291,34 @@ function main() {
     title="getPixel(buf: Buffer; x: int; y: int): Pixel"><wbr />get<wbr />Pixel<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#setPixel,Buffer,Pixel,int,int"
     title="setPixel(buf: Buffer; c: Pixel; x: int; y: int)"><wbr />set<wbr />Pixel<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#copyPixels,Buffer,Buffer,int,int,Rect,float,float"
+    title="copyPixels(buf, src: Buffer; x, y: int; sub: Rect; sx, sy: float)"><wbr />copy<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#copyPixels,Buffer,Buffer,int,int,float,float"
+    title="copyPixels(buf, src: Buffer; x, y: int; sx, sy: float)"><wbr />copy<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#noise,Buffer,uint,int,int,int"
+    title="noise(buf: Buffer; seed: uint; low, high, grey: int)"><wbr />noise<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#floodFill,Buffer,Pixel,int,int"
+    title="floodFill(buf: Buffer; c: Pixel; x, y: int)"><wbr />flood<wbr />Fill<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawPixel,Buffer,Pixel,int,int"
+    title="drawPixel(buf: Buffer; c: Pixel; x, y: int)"><wbr />draw<wbr />Pixel<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawLine,Buffer,Pixel,int,int,int,int"
+    title="drawLine(buf: Buffer; c: Pixel; x0, y0, x1, y1: int)"><wbr />draw<wbr />Line<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawRect,Buffer,Pixel,int,int,int,int"
+    title="drawRect(buf: Buffer; c: Pixel; x, y, w, h: int)"><wbr />draw<wbr />Rect<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawBox,Buffer,Pixel,int,int,int,int"
+    title="drawBox(buf: Buffer; c: Pixel; x, y, w, h: int)"><wbr />draw<wbr />Box<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawCircle,Buffer,Pixel,int,int,int"
+    title="drawCircle(buf: Buffer; c: Pixel; x, y, r: int)"><wbr />draw<wbr />Circle<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawRing,Buffer,Pixel,int,int,int"
+    title="drawRing(buf: Buffer; c: Pixel; x, y, r: int)"><wbr />draw<wbr />Ring<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawBuffer,Buffer,Buffer,int,int,Rect,Transform"
+    title="drawBuffer(buf: Buffer; src: Buffer; x, y: int; sub: Rect; t: Transform)"><wbr />draw<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawBuffer,Buffer,Buffer,int,int,Rect"
+    title="drawBuffer(buf: Buffer; src: Buffer; x, y: int; sub: Rect)"><wbr />draw<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawBuffer,Buffer,Buffer,int,int,Transform"
+    title="drawBuffer(buf: Buffer; src: Buffer; x, y: int; t: Transform)"><wbr />draw<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#drawBuffer,Buffer,Buffer,int,int"
+    title="drawBuffer(buf: Buffer; src: Buffer; x, y: int)"><wbr />draw<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
 
   </ul>
 </li>
@@ -1309,13 +1338,14 @@ function main() {
 <h1><a class="toc-backref" href="#7">Types</a></h1>
 <dl class="item">
 <dt id="PixelFormat"><a name="PixelFormat"></a><pre><span class="Identifier">PixelFormat</span> <span class="Other">=</span> <span class="Keyword">enum</span>
-  <span class="Identifier">BGRA</span><span class="Other">,</span> <span class="Identifier">RGBA</span><span class="Other">,</span> <span class="Identifier">ARGB</span><span class="Other">,</span> <span class="Identifier">ABGR</span></pre></dt>
+  <span class="Identifier">FMT_BGRA</span><span class="Other">,</span> <span class="Identifier">FMT_RGBA</span><span class="Other">,</span> <span class="Identifier">FMT_ARGB</span><span class="Other">,</span> <span class="Identifier">FMT_ABGR</span></pre></dt>
 <dd>
 
 
 </dd>
 <dt id="BlendMode"><a name="BlendMode"></a><pre><span class="Identifier">BlendMode</span> <span class="Other">=</span> <span class="Keyword">enum</span>
-  <span class="Identifier">ALPHA</span><span class="Other">,</span> <span class="Identifier">COLOR</span><span class="Other">,</span> <span class="Identifier">ADD</span><span class="Other">,</span> <span class="Identifier">SUBTRACT</span><span class="Other">,</span> <span class="Identifier">MULTIPLY</span><span class="Other">,</span> <span class="Identifier">LIGHTEN</span><span class="Other">,</span> <span class="Identifier">DARKEN</span><span class="Other">,</span> <span class="Identifier">SCREEN</span><span class="Other">,</span> <span class="Identifier">DIFFERENCE</span></pre></dt>
+  <span class="Identifier">BLEND_ALPHA</span><span class="Other">,</span> <span class="Identifier">BLEND_COLOR</span><span class="Other">,</span> <span class="Identifier">BLEND_ADD</span><span class="Other">,</span> <span class="Identifier">BLEND_SUBTRACT</span><span class="Other">,</span> <span class="Identifier">BLEND_MULTIPLY</span><span class="Other">,</span> <span class="Identifier">BLEND_LIGHTEN</span><span class="Other">,</span>
+  <span class="Identifier">BLEND_DARKEN</span><span class="Other">,</span> <span class="Identifier">BLEND_SCREEN</span><span class="Other">,</span> <span class="Identifier">BLEND_DIFFERENCE</span></pre></dt>
 <dd>
 
 
@@ -1453,6 +1483,76 @@ gets the color of the pixel at (x, y) on the buffer
 sets the color of the pixel at (x, y) on the buffer
 
 </dd>
+<dt id="copyPixels"><a name="copyPixels,Buffer,Buffer,int,int,Rect,float,float"></a><pre><span class="Keyword">proc</span> <span class="Identifier">copyPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">;</span> <span class="Identifier">sx</span><span class="Other">,</span> <span class="Identifier">sy</span><span class="Other">:</span> <span class="Identifier">float</span><span class="Other">)</span></pre></dt>
+<dd>
+copies the pixels from one buffer to another
+
+</dd>
+<dt id="copyPixels"><a name="copyPixels,Buffer,Buffer,int,int,float,float"></a><pre><span class="Keyword">proc</span> <span class="Identifier">copyPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sx</span><span class="Other">,</span> <span class="Identifier">sy</span><span class="Other">:</span> <span class="Identifier">float</span><span class="Other">)</span></pre></dt>
+<dd>
+copies the pixels from one buffer to another
+
+</dd>
+<dt id="noise"><a name="noise,Buffer,uint,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">noise</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">seed</span><span class="Other">:</span> <span class="Identifier">uint</span><span class="Other">;</span> <span class="Identifier">low</span><span class="Other">,</span> <span class="Identifier">high</span><span class="Other">,</span> <span class="Identifier">grey</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+fills the buffer with psuedo-random noise in the form of pixels
+
+</dd>
+<dt id="floodFill"><a name="floodFill,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">floodFill</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+fills the pixel (x, y) and all surrounding pixels of the same color with the color <cite>c</cite>
+
+</dd>
+<dt id="drawPixel"><a name="drawPixel,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+draws a pixel of color <cite>c</cite> at (x, y)
+
+</dd>
+<dt id="drawLine"><a name="drawLine,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawLine</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x0</span><span class="Other">,</span> <span class="Identifier">y0</span><span class="Other">,</span> <span class="Identifier">x1</span><span class="Other">,</span> <span class="Identifier">y1</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+draws a line of color <cite>c</cite> through (x0, y0), (x1, y1) 
+
+</dd>
+<dt id="drawRect"><a name="drawRect,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawRect</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+draws a rect with the dimensions w X h, of color <cite>c</cite> at (x, y)
+
+</dd>
+<dt id="drawBox"><a name="drawBox,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBox</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+draws a box with the dimensions w X h, of color <cite>c</cite> at (x, y) 
+
+</dd>
+<dt id="drawCircle"><a name="drawCircle,Buffer,Pixel,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawCircle</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+draws a circle with radius of <cite>r</cite> and color of <cite>c</cite> at (x, y)
+
+</dd>
+<dt id="drawRing"><a name="drawRing,Buffer,Pixel,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawRing</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+draws a ring with a radius of <cite>r</cite> and color of <cite>c</cite> at (x, y)
+
+</dd>
+<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Rect,Transform"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">;</span> <span class="Identifier">t</span><span class="Other">:</span> <span class="Identifier">Transform</span><span class="Other">)</span></pre></dt>
+<dd>
+draw the Buffer <cite>src</cite> at (x, y) with a clipping rect of <cite>sub</cite> and a transform of <cite>t</cite>
+
+</dd>
+<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Rect"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">)</span></pre></dt>
+<dd>
+draw the Buffer <cite>src</cite> at (x, y) with a clipping rect of <cite>sub</cite>
+
+</dd>
+<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Transform"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">t</span><span class="Other">:</span> <span class="Identifier">Transform</span><span class="Other">)</span></pre></dt>
+<dd>
+draw the Buffer <cite>src</cite> at (x, y) with a transform of <cite>t</cite>
+
+</dd>
+<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dd>
+draw the Buffer <cite>src</cite> at (x, y)
+
+</dd>
 
 </dl></div>
 
@@ -1463,7 +1563,7 @@ sets the color of the pixel at (x, y) on the buffer
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-02-12 00:56:20 UTC</small>
+        <small>Made with Nim. Generated: 2018-02-17 22:47:44 UTC</small>
       </div>
     </div>
   </div>

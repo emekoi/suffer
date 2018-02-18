@@ -23,21 +23,21 @@ else:
 
 type
   PixelFormat* = enum
-    BGRA
-    RGBA
-    ARGB
-    ABGR
+    FMT_BGRA
+    FMT_RGBA
+    FMT_ARGB
+    FMT_ABGR
 
   BlendMode* = enum
-    ALPHA
-    COLOR
-    ADD
-    SUBTRACT
-    MULTIPLY
-    LIGHTEN
-    DARKEN
-    SCREEN
-    DIFFERENCE
+    BLEND_ALPHA
+    BLEND_COLOR
+    BLEND_ADD
+    BLEND_SUBTRACT
+    BLEND_MULTIPLY
+    BLEND_LIGHTEN
+    BLEND_DARKEN
+    BLEND_SCREEN
+    BLEND_DIFFERENCE
 
   Pixel* = object {.union.}
     word*: uint32
@@ -109,33 +109,33 @@ proc getPixel*(buf: Buffer, x: int, y: int): Pixel
   ## gets the color of the pixel at (x, y) on the buffer
 proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int)
   ## sets the color of the pixel at (x, y) on the buffer
-proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: var float)
+proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float)
   ## copies the pixels from one buffer to another
-proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: var float)
+proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float)
   ## copies the pixels from one buffer to another
-proc noise*(buf: Buffer, seed: uint, low: int, high: int, grey: int)
+proc noise*(buf: Buffer, seed: uint, low, high, grey: int)
   ## fills the buffer with psuedo-random noise in the form of pixels
-proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int)
+proc floodFill*(buf: Buffer, c: Pixel, x, y: int)
   ## fills the pixel (x, y) and all surrounding pixels of the same color with the color `c`
-proc drawPixel*(buf: Buffer, c: Pixel, x: int, y: int)
+proc drawPixel*(buf: Buffer, c: Pixel, x, y: int)
   ## draws a pixel of color `c` at (x, y)
-proc drawLine*(buf: Buffer, c: Pixel, x0: int, y0: int, x1: int, y1: int)
+proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int)
   ## draws a line of color `c` through (x0, y0), (x1, y1) 
-proc drawRect*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int)
+proc drawRect*(buf: Buffer, c: Pixel, x, y, w, h: int)
   ## draws a rect with the dimensions w X h, of color `c` at (x, y)
-proc drawBox*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int)
+proc drawBox*(buf: Buffer, c: Pixel, x, y, w, h: int)
   ## draws a box with the dimensions w X h, of color `c` at (x, y) 
-proc drawCircle*(buf: Buffer, c: Pixel, x: int, y: int, r: int)
+proc drawCircle*(buf: Buffer, c: Pixel, x, y, r: int)
   ## draws a circle with radius of `r` and color of `c` at (x, y)
-proc drawRing*(buf: Buffer, c: Pixel, x: int, y: int, r: int)
+proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int)
   ## draws a ring with a radius of `r` and color of `c` at (x, y)
-proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub: Rect, t: Transform)
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform)
   ## draw the Buffer `src` at (x, y) with a clipping rect of `sub` and a transform of `t`
-proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub: Rect)
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect)
   ## draw the Buffer `src` at (x, y) with a clipping rect of `sub`
-proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, t: Transform)
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, t: Transform)
   ## draw the Buffer `src` at (x, y) with a transform of `t`
-proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int)
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int)
   ## draw the Buffer `src` at (x, y)
 
 # proc box[T](x: T): ref T =
@@ -168,7 +168,7 @@ type
   RandState = ref tuple
     x, y, z, w: uint
 
-proc xdiv[T](n, x: T): T =
+proc `//`[T](n, x: T): T =
   if x == 0: return n
   return n div x
 
@@ -205,7 +205,7 @@ proc color*(): Pixel =
 converter fromU32(word: uint32): Pixel =
   result.word = word
 
-proc clipRect(r: var Rect, to: Rect) =
+proc clipRect(r: ptr Rect, to: Rect) =
   let
     x1 = max(r.x, to.x)
     y1 = max(r.y, to.y)
@@ -217,14 +217,14 @@ proc clipRect(r: var Rect, to: Rect) =
   r.h = max(y2 - y1, 0)
 
 
-proc clipRectAndOffset(r: var Rect, x, y: var int, to: Rect) =
+proc clipRectAndOffset(r: ptr Rect, x, y: ptr int, to: Rect) =
   var d: int
-  if (d = to.x - x; d) > 0:
-    x += d; r.w -= d; r.x += d
-  if (d = to.y - y; d) > 0:
-    y += d; r.h -= d; r.y += d
-  if (d = (x + r.w) - (to.x + to.w); d) > 0: r.w -= d
-  if (d = (y + r.h) - (to.y + to.h); d) > 0: r.h -= d
+  if (d = to.x - x[]; d) > 0:
+    x[] += d; r.w -= d; r.x += d
+  if (d = to.y - y[]; d) > 0:
+    y[] += d; r.h -= d; r.y += d
+  if (d = (x[] + r.w) - (to.x + to.w); d) > 0: r.w -= d
+  if (d = (y[] + r.h) - (to.y + to.h); d) > 0: r.h -= d
 
 proc initBuffer(buf: Buffer, w, h: int) =
   buf.w = w; buf.h = h
@@ -251,10 +251,10 @@ proc loadPixels*(buf: Buffer, src: openarray[uint8], fmt: PixelFormat) =
   var sr, sg, sb, sa: int
   let sz = (buf.w * buf.h) - 1
   case fmt:
-    of BGRA: (sr = 16; sg =  8; sb =  0; sa = 24;)
-    of RGBA: (sr =  0; sg =  8; sb = 16; sa = 24;)
-    of ARGB: (sr =  8; sg = 16; sb = 24; sa =  0;)
-    of ABGR: (sr = 24; sg = 16; sb =  8; sa =  0;)
+    of FMT_BGRA: (sr = 16; sg =  8; sb =  0; sa = 24;)
+    of FMT_RGBA: (sr =  0; sg =  8; sb = 16; sa = 24;)
+    of FMT_ARGB: (sr =  8; sg = 16; sb = 24; sa =  0;)
+    of FMT_ABGR: (sr = 24; sg = 16; sb =  8; sa =  0;)
   
   for i in countdown(sz, 0):
     buf.pixels[i].rgba.r = (src[i] shr sr) and 0xff
@@ -276,21 +276,20 @@ proc setBlend*(buf: Buffer, blend: BlendMode) =
   buf.mode.blend = blend
 
 proc setAlpha*[T](buf: Buffer, alpha: T) =
-  buf.mode.alpha = clamp(alpha, 0, 0xff)  
+  buf.mode.alpha = clamp(alpha, 0, 0xff).uint8
 
 proc setColor*(buf: Buffer, c: Pixel) =
-  buf.mode.color.word = c.word & RGB_MASK 
+  buf.mode.color.word = c.word and RGB_MASK 
 
 proc setClip*(buf: Buffer, r: Rect) =
   buf.clip = r
-  var r = Rect(0, 0, buf.w, buf.h)
-  clipRect(buf.clip, r)
+  clipRect(addr buf.clip, (0, 0, buf.w, buf.h))
 
 proc reset*(buf: Buffer) =
-  buf.setBlend(ALPHA)
+  buf.setBlend(BLEND_ALPHA)
   buf.setAlpha(0xff)
   buf.setColor color(0xff, 0xff, 0xff)
-  buf.setClip Rect(0, 0, buf.w, buf.h)
+  buf.setClip((x: 0, y: 0, w: buf.w, h: buf.h))
 
 proc clear*(buf: Buffer, c: Pixel) =
   for pixel in mitems(buf.pixels):
@@ -307,8 +306,7 @@ proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int) =
 
 proc copyPixelsBasic(buf, src: Buffer, x, y: int, sub: Rect) =
   # Clip to destination buffer
-  var (x, y, sub) = (x, y, sub)
-  clipRectAndOffset(sub, x, y, buf.clip)
+  clipRectAndOffset(addr sub, addr x, addr y, buf.clip)
   # Clipped off screen?
   if sub.w <= 0 or sub.h <= 0: return
   # Copy pixels
@@ -358,7 +356,7 @@ proc copyPixelsScaled(buf, src: Buffer, x, y: int, sub: Rect, scalex, scaley: fl
       sx += inx
     sy += iny
 
-proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: var float) =
+proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float) =
   let (sx, sy) = (abs(sx), abs(sy))
   if sx == 0 or sy == 0: return
   if sub.w <= 0 or sub.h <= 0: return
@@ -372,8 +370,8 @@ proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: var float) =
   # Scaled copy
     copyPixelsScaled(buf, src, x, y, sub, sx, sy)
 
-proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: var float) =
-  copyPixels(buf, src, x, y, Rect(0, 0, src.w, src.h), sx, sy)
+proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float) =
+  copyPixels(buf, src, x, y, (0, 0, src.w, src.h), sx, sy)
 
 proc noise*(buf: Buffer, seed: uint, low: int, high: int, grey: int) =
   var 
@@ -395,7 +393,7 @@ proc noise*(buf: Buffer, seed: uint, low: int, high: int, grey: int) =
 
 proc floodFill(buf: Buffer, c, o: Pixel, x, y: int) =
   if
-    y < 0 or y >= buf.h or x < 0 or x >= buf.wor||
+    y < 0 or y >= buf.h or x < 0 or x >= buf.word or
     buf.pixels[x + y * buf.w].word != o.word: return
   # Fill left
   var il = x
@@ -416,32 +414,176 @@ proc floodFill(buf: Buffer, c, o: Pixel, x, y: int) =
 proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int) =
   floodFill(buf, c, buf.getPixel(x, y), x, y)
 
-proc drawPixel*(buf: Buffer, c: Pixel, x: int, y: int) =
+proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
+  let alpha = ((s.rgba.a.uint * m.alpha.uint) shr 8).uint8
+  var s = s
+  if alpha <= 1: return
+  # Color 
+  if m.color.word != RGB_MASK:
+    s.rgba.r = (s.rgba.r * m.color.rgba.r) shr 8
+    s.rgba.g = (s.rgba.g * m.color.rgba.g) shr 8
+    s.rgba.b = (s.rgba.b * m.color.rgba.b) shr 8
+  # Blend
+  case m.blend
+  of BLEND_ALPHA:
+    discard
+  of BLEND_COLOR:
+    s = m.color
+  of BLEND_ADD:
+    s.rgba.r = min(d.rgba.r + s.rgba.r, 0xff)
+    s.rgba.g = min(d.rgba.g + s.rgba.g, 0xff)
+    s.rgba.b = min(d.rgba.b + s.rgba.b, 0xff)
+  of BLEND_SUBTRACT:
+    s.rgba.r = min(d.rgba.r - s.rgba.r, 0)
+    s.rgba.g = min(d.rgba.g - s.rgba.g, 0)
+    s.rgba.b = min(d.rgba.b - s.rgba.b, 0)
+  of BLEND_MULTIPLY:
+    s.rgba.r = (s.rgba.r * d.rgba.r) shr 8
+    s.rgba.g = (s.rgba.g * d.rgba.g) shr 8
+    s.rgba.b = (s.rgba.b * d.rgba.b) shr 8
+  of BLEND_LIGHTEN:
+    s = if s.rgba.r + s.rgba.g + s.rgba.b >
+          d.rgba.r + d.rgba.g + d.rgba.b: s else: d[]
+  of BLEND_DARKEN:
+    s = if s.rgba.r + s.rgba.g + s.rgba.b <
+          d.rgba.r + d.rgba.g + d.rgba.b: s else: d[]
+  of BLEND_SCREEN:
+    s.rgba.r = 0xff'u8 - (((0xff'u8 - d.rgba.r) * (0xff'u8 - s.rgba.r)) shr 8'u8)
+    s.rgba.g = 0xff'u8 - (((0xff'u8 - d.rgba.g) * (0xff'u8 - s.rgba.g)) shr 8'u8)
+    s.rgba.b = 0xff'u8 - (((0xff'u8 - d.rgba.b) * (0xff'u8 - s.rgba.b)) shr 8'u8)
+  of BLEND_DIFFERENCE:
+    s.rgba.r = abs(s.rgba.r.int8 - d.rgba.r.int8).uint8
+    s.rgba.g = abs(s.rgba.g.int8 - d.rgba.g.int8).uint8
+    s.rgba.b = abs(s.rgba.b.int8 - d.rgba.b.int8).uint8
+  # Write
+  if alpha >= 254'u8:
+    d[] = s
+  elif d.rgba.a >= 254'u8:
+    d.rgba.r = lerp(8'u8, d.rgba.r, s.rgba.r, alpha)
+    d.rgba.g = lerp(8'u8, d.rgba.g, s.rgba.g, alpha)
+    d.rgba.b = lerp(8'u8, d.rgba.b, s.rgba.b, alpha)
+  else:
+    let 
+      a = 0xff'u8 - (((0xff'u8 - d.rgba.a) * (0xff'u8 - alpha)) shr 8)
+      z = (d.rgba.a * (0xff'u8 - alpha)) shr 8
+    d.rgba.r = div8Table[((d.rgba.r * z) shr 8) + ((s.rgba.r * alpha) shr 8)][a]
+    d.rgba.g = div8Table[((d.rgba.g * z) shr 8) + ((s.rgba.g * alpha) shr 8)][a]
+    d.rgba.b = div8Table[((d.rgba.b * z) shr 8) + ((s.rgba.b * alpha) shr 8)][a]
+    d.rgba.a = a
+
+proc drawPixel*(buf: Buffer, c: Pixel, x, y: int) =
+  if
+    x >= buf.clip.x and x < buf.clip.x + buf.clip.w and
+    y >= buf.clip.y and y < buf.clip.y + buf.clip.h:
+    blendPixel(buf.mode, addr buf.pixels[x + y * buf.w], c);
+
+proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int) =
+  let steep = abs(y1 - y0) > abs(x1 - x0)
+  var (x0, y0, x1, y1) = (x0, y0, x1, y1)
+  if steep:
+    swap x0, y0
+    swap x1, y1
+  if x0 > x1:
+    swap x0, x1
+    swap y0, y1
+  var 
+    deltax = x1 - x0
+    deltay = abs(y1 - y0)
+    error = deltax / 2
+    ystep = if y0 < y1: 1 else: -1
+    y = y0
+  for x in x0..x1:
+    if steep:
+      buf.drawPixel(c, y, x)
+    else:
+      buf.drawPixel(c, x, y)
+    error -= deltay
+    if error < 0:
+      y += ystep
+      error += deltax
+
+proc drawRect*(buf: Buffer, c: Pixel, x, y, w, h: int) =
+  var
+    (x, y, w, h) = (x, y, w, h)
+    r = (x: x, y: y, w: w, h: h)
+  clipRect(r.addr, buf.clip)
+  y = r.h
+  for y in countdown(r.h - 1, 0):
+    var i = 0
+    for x in countdown(r.w - 1, 0):
+      var pixel = buf.pixels[(r.x + (r.y + y) * buf.w) + x].addr
+      blendPixel(buf.mode, pixel, c)
+
+proc drawBox*(buf: Buffer, c: Pixel, x, y, w, h: int) =
+  buf.drawRect(c, x + 1, y, w - 1, 1)
+  buf.drawRect(c, x, y + h - 1, w - 1, 1)
+  buf.drawRect(c, x, y, 1, h - 1)
+  buf.drawRect(c, x + w - 1, y + 1, 1, h - 1)
+
+template DRAW_ROW(x, y, len: untyped) =
+  if y >= 0 and (not rows[y shr 5] and (1 shl (y and 31)).uint) != 0:
+    buf.drawRect(c, x, y, len, 1)
+    rows[y shr 5] = rows[y shr 5] or (1 shl (y and 31)).uint
+
+proc drawCircle*(buf: Buffer, c: Pixel, x, y, r: int) =
+  var 
+    dx = abs(r)
+    dy = 0
+    radiusError = 1 - dx
+    rows: array[511, uint]
+  # Clipped completely off-screen?
+  if x + dx < buf.clip.x or x - dx > buf.clip.x + buf.clip.w or
+    y + dx < buf.clip.y or y - dx > buf.clip.y + buf.clip.h: return
+  # zeroset bit array of drawn rows -- we keep track of which rows have been
+  # drawn so that we can avoid overdraw
+  # memset(rows, 0, sizeof(rows));
+  reset(rows)
+  while dx >= dy:
+    DRAW_ROW(x - dx, y + dy, dx shl 1)
+    DRAW_ROW(x - dx, y - dy, dx shl 1)
+    DRAW_ROW(x - dy, y + dx, dy shl 1)
+    DRAW_ROW(x - dy, y - dx, dy shl 1)
+    dy += 1
+    if radiusError < 0:
+      radiusError += 2 * dy + 1
+    else:
+      dx -= 1
+      radiusError += 2 * (dy - dx + 1)
+
+proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int) =
+  # TODO : Prevent against overdraw?
+  var
+    dx = abs(r)
+    dy = 0
+    radiusError = 1 - dx
+  # Clipped completely off-screen?
+  if x + dx < buf.clip.x or x - dx > buf.clip.x + buf.clip.w or
+      y + dx < buf.clip.y or y - dx > buf.clip.y + buf.clip.h: return
+  # Draw
+  while dx >= dy:
+    buf.drawPixel(c,  dx + x,  dy + y)
+    buf.drawPixel(c,  dy + x,  dx + y)
+    buf.drawPixel(c, -dx + x,  dy + y)
+    buf.drawPixel(c, -dy + x,  dx + y)
+    buf.drawPixel(c, -dx + x, -dy + y)
+    buf.drawPixel(c, -dy + x, -dx + y)
+    buf.drawPixel(c,  dx + x, -dy + y)
+    buf.drawPixel(c,  dy + x, -dx + y)
+    dy += 1
+    if radiusError < 0:
+      radiusError += 2 * dy + 1
+    else:
+      dx -= 1
+      radiusError += 2 * (dy - dx + 1)
+
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
   discard
 
-proc drawLine*(buf: Buffer, c: Pixel, x0: int, y0: int, x1: int, y1: int) =
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect) =
   discard
 
-proc drawRect*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int) =
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, t: Transform) =
   discard
 
-proc drawBox*(buf: Buffer, c: Pixel, x: int, y: int, w: int, h: int) =
-  discard
-
-proc drawCircle*(buf: Buffer, c: Pixel, x: int, y: int, r: int) =
-  discard
-
-proc drawRing*(buf: Buffer, c: Pixel, x: int, y: int, r: int) =
-  discard
-
-proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub: Rect, t: Transform) =
-  discard
-
-proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, sub: Rect) =
-  discard
-
-proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int, t: Transform) =
-  discard
-
-proc drawBuffer*(buf: Buffer, src: Buffer, x: int, y: int) =
+proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int) =
   discard
