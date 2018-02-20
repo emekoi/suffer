@@ -1,6 +1,5 @@
-{.deadCodeElim: on.}
+{.deadCodeElim: on, optimization: speed.}
 
-#
 #  Copyright (c) 2017 emekoi
 #
 #  This library is free software; you can redistribute it and/or modify it
@@ -13,13 +12,13 @@ import
   math
 
 when defined(MODE_RGBA):
-  const RGB_MASK = 0x00FFFFFF
+  const RGB_MASK = 0x00FFFFFF'u32
 elif defined(MODE_ARGB):
-  const RGB_MASK = 0xFFFFFF00
+  const RGB_MASK = 0xFFFFFF00'u32
 elif defined(MODE_ABGR):
-  const RGB_MASK = 0xFFFFFF00
+  const RGB_MASK = 0xFFFFFF00'u32
 else:
-  const RGB_MASK = 0x00FFFFFF
+  const RGB_MASK = 0x00FFFFFF'u32
 
 type
   PixelFormat* = enum
@@ -61,33 +60,21 @@ type
   Transform* = tuple
     ox, oy, r, sx, sy: float
 
-  BufferOwned = ref object
+  Buffer* = ref object
     mode*: DrawMode
     clip*: Rect
     pixels*: seq[Pixel]
     w*, h*: int
 
-  BufferShared = ref object
-    mode*: DrawMode
-    clip*: Rect
-    pixels*: pointer
-    w*, h*: int
-
-  Buffer* = BufferOwned | BufferShared
-
 proc pixel*[T](r, g, b, a: T): Pixel
   ## creates a pixel with the color rgba(r, g, b, a)
 proc color*[T](r, g, b: T): Pixel
   ## creates a pixel with the color rgba(r, g, b, 255)
-proc color*(): Pixel
-  ## creates a black pixel
 proc newBuffer*(w, h: int): Buffer
   ## creates a pixel buffer
-proc newBufferShared*(pixels: pointer, w, h: int): Buffer
-  ## creates a pixel buffer that shares its pixels with another object
 proc cloneBuffer*(src: Buffer): Buffer
   ## creates a copy of the buffer
-proc loadPixels*(buf: Buffer, src: openarray[uint8], fmt: PixelFormat)
+proc loadPixels*(buf: Buffer, src: openarray[SomeUnsignedInt], fmt: PixelFormat)
   ## loads the data from `src` into the buffer using the given pixel format
 proc loadPixels8*(buf: Buffer, src: openarray[uint8], pal: openarray[Pixel])
   ## loads the data from `src` into the buffer using the given palette
@@ -113,7 +100,7 @@ proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float)
   ## copies the pixels from one buffer to another
 proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float)
   ## copies the pixels from one buffer to another
-proc noise*(buf: Buffer, seed: uint, low, high, grey: int)
+proc noise*(buf: Buffer, seed: uint, low, high: int, grey: bool)
   ## fills the buffer with psuedo-random noise in the form of pixels
 proc floodFill*(buf: Buffer, c: Pixel, x, y: int)
   ## fills the pixel (x, y) and all surrounding pixels of the same color with the color `c`
@@ -141,8 +128,8 @@ proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int)
 # proc box[T](x: T): ref T =
 #   new(result); result[] = x
 
-proc `[]`(p: pointer, offset: int): pointer =
-  return cast[pointer](uint(cast[int](p) + offset))
+proc `$`*(p: Pixel): string =
+  return "($#, ($#, $#, $#, $#))" % [$p.word, $p.rgba.r, $p.rgba.g, $p.rgba.b, $p.rgba.a]
 
 proc lerp[T](bits, a, b, p: T): T =
   return (a + (b - a) * p) shr bits
@@ -152,25 +139,25 @@ proc genDivTable(): array[256, array[256, uint8]] =
     for a in 0'u8..255'u8:
       result[a][b] = uint8((a shl 8) div b)
 
-const PI  = 3.14159265359
-const PI2 = 6.28318530718
+# const PI  = 3.14159265359'f32
+const PI2 = 6.28318530718'f32
 
 const FX_BITS = 12
 const FX_UNIT = 1 shl FX_BITS
-const FX_MASK = FX_UNIT - 1
+# const FX_MASK = FX_UNIT - 1
 
 const div8Table: array[256, array[256, uint8]] = genDivTable()
 
 type
-  Point = tuple
-    x, y: int
+  # Point = tuple
+    # x, y: int
 
-  RandState = ref tuple
+  RandState = tuple
     x, y, z, w: uint
 
-proc `//`[T](n, x: T): T =
-  if x == 0: return n
-  return n div x
+# proc `//`[T](n, x: T): T =
+  # if x == 0: return n
+  # return n div x
 
 proc check(cond: bool, fname: string, msg: string) =
   if not cond: 
@@ -178,29 +165,25 @@ proc check(cond: bool, fname: string, msg: string) =
     quit(QuitFailure)
 
 proc rand128init(seed: uint): RandState =
-  result = new RandState
   result.x = (seed and 0xff000000'u) or 1'u
   result.y = seed and 0xff0000'u
   result.z = seed and 0xff00'u
   result.w = seed and 0xff'u
 
-proc rand128(s: RandState): uint =
+proc rand128(s: var RandState): uint =
   result = s.x xor (s.x shl 11'u)
   s.x = s.y; s.y = s.z; s.z = s.w
   s.w = s.w xor (s.w shr 19) xor result xor (result shr 8)
   return s.w
 
 proc pixel*[T](r, g, b, a: T): Pixel =
-  result.rgba.r = uint8(clamp(r, 0, 0xff))
-  result.rgba.g = uint8(clamp(g, 0, 0xff))
-  result.rgba.b = uint8(clamp(b, 0, 0xff))
-  result.rgba.a = uint8(clamp(a, 0, 0xff))
+  result.rgba.r = clamp(r, 0, 0xff).uint8
+  result.rgba.g = clamp(g, 0, 0xff).uint8
+  result.rgba.b = clamp(b, 0, 0xff).uint8
+  result.rgba.a = clamp(a, 0, 0xff).uint8
 
 proc color*[T](r, g, b: T): Pixel =
   return pixel(r, g, b, 0xff)
-
-proc color*(): Pixel =
-  return color(0, 0, 0)
 
 converter fromU32(word: uint32): Pixel =
   result.word = word
@@ -226,28 +209,19 @@ proc clipRectAndOffset(r: ptr Rect, x, y: ptr int, to: Rect) =
   if (d = (x[] + r.w) - (to.x + to.w); d) > 0: r.w -= d
   if (d = (y[] + r.h) - (to.y + to.h); d) > 0: r.h -= d
 
-proc initBuffer(buf: Buffer, w, h: int) =
-  buf.w = w; buf.h = h
-  buf.reset()
-
 proc newBuffer*(w, h: int): Buffer =
-  result = new BufferOwned
+  new result
   check(w > 0, "newBuffer", "expected width of 1 or greater")
   check(h > 0, "newBuffer", "expected height of 1 or greater")
   result.pixels = repeat(color(0, 0, 0), w * h)
   # initialize the buffer
-  initBuffer(result, w, h)
-
-proc newBufferShared*(pixels: pointer, w, h: int): Buffer =
-  result = new BufferShared
-  result.pixels = pixels
-  # initialize the buffer
-  initBuffer(result, w, h)
+  result.w = w; result.h = h
+  result.reset()
 
 proc cloneBuffer*(src: Buffer): Buffer =
   deepCopy(result, src)
 
-proc loadPixels*(buf: Buffer, src: openarray[uint8], fmt: PixelFormat) =
+proc loadPixels*(buf: Buffer, src: openarray[SomeUnsignedInt], fmt: PixelFormat) =
   var sr, sg, sb, sa: int
   let sz = (buf.w * buf.h) - 1
   case fmt:
@@ -265,7 +239,7 @@ proc loadPixels*(buf: Buffer, src: openarray[uint8], fmt: PixelFormat) =
 proc loadPixels8*(buf: Buffer, src: openarray[uint8], pal: openarray[Pixel]) =
   let sz = (buf.w * buf.h) - 1
   for i in countdown(sz, 0):
-    buf.pixels[i] = pal[src[i]]
+    buf.pixels[i] = pal[src[i].int]
 
 proc loadPixels8*(buf: Buffer, src: openarray[uint8]) =
   let sz = (buf.w * buf.h) - 1
@@ -289,11 +263,10 @@ proc reset*(buf: Buffer) =
   buf.setBlend(BLEND_ALPHA)
   buf.setAlpha(0xff)
   buf.setColor color(0xff, 0xff, 0xff)
-  buf.setClip((x: 0, y: 0, w: buf.w, h: buf.h))
+  buf.setClip((0, 0, buf.w, buf.h))
 
 proc clear*(buf: Buffer, c: Pixel) =
-  for pixel in mitems(buf.pixels):
-    pixel = c
+  for pixel in mitems(buf.pixels): pixel = c
 
 proc getPixel*(buf: Buffer, x: int, y: int): Pixel =
   if (x >= 0 and y >= 0 and x < buf.w and y < buf.h):
@@ -306,54 +279,43 @@ proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int) =
 
 proc copyPixelsBasic(buf, src: Buffer, x, y: int, sub: Rect) =
   # Clip to destination buffer
+  var (x, y, sub) = (x, y, sub)
   clipRectAndOffset(addr sub, addr x, addr y, buf.clip)
   # Clipped off screen?
   if sub.w <= 0 or sub.h <= 0: return
   # Copy pixels
   for i in 0..<sub.h:
-    copyMem(
-      (case buf:
-        of BufferOwned:
-          addr buf.pixels[0]
-        of BufferShared:
-          buf.pixels)[x + (y + i) * buf.w],
-      (case src:
-        of BufferOwned:
-          addr src.pixels[0]
-        of BufferShared:
-          src.pixels)[sub.x + (sub.y + i) * src.w],
-      sub.w * sizeof(buf.pixel[]))
+    copyMem(addr buf.pixels[x + (y + i) * buf.w],
+      addr src.pixels[sub.x + (sub.y + i) * src.w], sub.w * sizeof(Pixel))
 
 proc copyPixelsScaled(buf, src: Buffer, x, y: int, sub: Rect, scalex, scaley: float) =
   var
     d: int
-    (w, h) = (sub.w * scalex, sub.h * scaley)
-    (inx, iny) = (FX_UNIT / scalex, FX_UNIT / scaley)
+    (x, y, sub) = (x, y, sub)
+    (w, h) = ((sub.w.float * scalex).int, (sub.h.float * scaley).int)
+    (inx, iny) = ((FX_UNIT / scalex).int, (FX_UNIT / scaley).int)
   # Clip to destination buffer  
   if (d = buf.clip.x - x; d) > 0:
-    x += d; sub.x += d / scalex; w -= d;
+    x += d; sub.x += (d.float / scalex).int; w -= d;
   if (d = buf.clip.y - y; d) > 0:
-    y += d; sub.y += d / scaley; h -= d;
+    y += d; sub.y += (d.float / scaley).int; h -= d;
   if (d = (x + w) - (buf.clip.x + buf.clip.w); d) > 0: w -= d
   if (d = (y + h) - (buf.clip.y + buf.clip.h); d) > 0: h -= d
   # Clipped offscreen
   if w == 0 or h == 0: return
   # Draw
   var sy = sub.y shl FX_BITS
-  for dy in dy..<(y + h):
+
+  for dy in y..<(y + h):
     var
       sx = 0
       dx = x + buf.w * dy
     let
-      pixels = (case src:
-        of BufferOwned:
-          addr src.pixels[0]
-        of BufferShared:
-          src.pixels)[(sub.x shr FX_BITS) + src.w * (sy shr FX_BITS)]
+      pixels = src.pixels[((sub.x shr FX_BITS) + src.w * (sy shr FX_BITS))..<src.pixels.len]
       edx = dx + w
     while dx < edx:
-      buf.pixels[(dx += 1; dx)] = pixels[sx shr FX_BITS]
-      sx += inx
+      buf.pixels[dx] = pixels[sx shr FX_BITS]
+      sx += inx; dx += 1
     sy += iny
 
 proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float) =
@@ -373,27 +335,27 @@ proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float) =
 proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float) =
   copyPixels(buf, src, x, y, (0, 0, src.w, src.h), sx, sy)
 
-proc noise*(buf: Buffer, seed: uint, low: int, high: int, grey: int) =
+proc noise*(buf: Buffer, seed: uint, low, high: int, grey: bool) =
   var 
     s = rand128init(seed)
-    low = clamp(low, 0, 0xfe)
-    high = clamp(high, low + 1, 0xff)
+    high = clamp(high, low + 1, 0xff).uint
+    low = clamp(low, 0, 0xfe).uint
   if grey:
-    for i in countdown(buf.w * buf.h, 0):
-      buf.pixels[i].rgba.r = low + rand128(&s) % (high - low)
+    for i in countdown((buf.w * buf.h) - 1, 0):
+      buf.pixels[i].rgba.r = (low + rand128(s) mod (high - low)).uint8
       buf.pixels[i].rgba.g = buf.pixels[i].rgba.r
       buf.pixels[i].rgba.b = buf.pixels[i].rgba.r
       buf.pixels[i].rgba.a = 0xff
   else:
-    for i in countdown(buf.w * buf.h, 0):
-      buf.pixels[i].word = rand128(&s) or (not RGB_MASK)
-      buf.pixels[i].rgba.r = low + buf.pixels[i].rgba.r % (high - low)
-      buf.pixels[i].rgba.g = low + buf.pixels[i].rgba.g % (high - low)
-      buf.pixels[i].rgba.b = low + buf.pixels[i].rgba.b % (high - low)
+    for i in countdown((buf.w * buf.h) - 1, 0):
+      buf.pixels[i].word = (rand128(s) or (not RGB_MASK).uint).uint32
+      buf.pixels[i].rgba.r = low.uint8 + buf.pixels[i].rgba.r mod (high - low).uint8
+      buf.pixels[i].rgba.g = low.uint8 + buf.pixels[i].rgba.g mod (high - low).uint8
+      buf.pixels[i].rgba.b = low.uint8 + buf.pixels[i].rgba.b mod (high - low).uint8
 
 proc floodFill(buf: Buffer, c, o: Pixel, x, y: int) =
   if
-    y < 0 or y >= buf.h or x < 0 or x >= buf.word or
+    y < 0 or y >= buf.h or x < 0 or x >= buf.w or
     buf.pixels[x + y * buf.w].word != o.word: return
   # Fill left
   var il = x
@@ -407,8 +369,8 @@ proc floodFill(buf: Buffer, c, o: Pixel, x, y: int) =
     ir += 1
   # Fill up and down
   while il <= ir:
-    floodFill(buf, c, o, il, y - 1)
-    floodFill(buf, c, o, il, y + 1)
+    buf.floodFill(c, o, il, y - 1)
+    buf.floodFill(c, o, il, y + 1)
     il += 1
 
 proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int) =
@@ -475,8 +437,7 @@ proc drawPixel*(buf: Buffer, c: Pixel, x, y: int) =
   if
     x >= buf.clip.x and x < buf.clip.x + buf.clip.w and
     y >= buf.clip.y and y < buf.clip.y + buf.clip.h:
-      var p = buf.pixels[x + y * buf.w]
-      blendPixel(buf.mode, p.addr, c);
+      blendPixel(buf.mode, buf.pixels[x + y * buf.w].addr, c);
 
 proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int) =
   let steep = abs(y1 - y0) > abs(x1 - x0)
@@ -498,10 +459,10 @@ proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int) =
       buf.drawPixel(c, y, x)
     else:
       buf.drawPixel(c, x, y)
-    error -= deltay
+    error -= deltay.float
     if error < 0:
       y += ystep
-      error += deltax
+      error += deltax.float
 
 proc drawRect*(buf: Buffer, c: Pixel, x, y, w, h: int) =
   var
@@ -510,10 +471,8 @@ proc drawRect*(buf: Buffer, c: Pixel, x, y, w, h: int) =
   clipRect(r.addr, buf.clip)
   y = r.h
   for y in countdown(r.h - 1, 0):
-    var i = 0
     for x in countdown(r.w - 1, 0):
-      var pixel = buf.pixels[(r.x + (r.y + y) * buf.w) + x]
-      blendPixel(buf.mode, pixel.addr, c)
+      blendPixel(buf.mode, buf.pixels[(r.x + (r.y + y) * buf.w) + x].addr, c)
 
 proc drawBox*(buf: Buffer, c: Pixel, x, y, w, h: int) =
   buf.drawRect(c, x + 1, y, w - 1, 1)
@@ -580,15 +539,17 @@ proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int) =
 proc drawBufferBasic(buf: Buffer, src: Buffer, x, y: int, sub: Rect) =
   # Clip to destination buffer
   var (sub, x, y) = (sub, x, y)
-  clipRectAndOffset(sub, x, y, buf.clip)
+  clipRectAndOffset(sub.addr, x.addr, y.addr, buf.clip)
   # Clipped off screen?
-  if sub.w <= 0 or sub.h <= 0: return
+  if sub.w <= 0 or sub.h <= 0:
+    echo "erre"
+    return
   # Draw
   for iy in 0..<sub.h:
-    var pd = buf.pixels[x + (y + iy) * buf.w].addr
-    var ps = src.pixels[sub.x + (sub.y + iy) * src.w].addr
+    var pd = buf.pixels[x + (y + iy) * buf.w..<buf.pixels.len]
+    var ps = src.pixels[sub.x + (sub.y + iy) * src.w..<src.pixels.len]
     for i in 0..<sub.w:
-      blendPixel(buf.mode, pd[i], ps[i][])
+      blendPixel(buf.mode, pd[i].addr, ps[i])
 
 proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
   let
@@ -599,11 +560,12 @@ proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transfo
     ix = ((sub.w shl FX_BITS).float / t.sx / sub.w.float).int
     iy = ((sub.h shl FX_BITS).float / t.sy / sub.h.float).int
   var
+    sub = sub
     w = (sub.w.float * absSx + 0.5).floor.int
     h = (sub.h.float * absSy + 0.5).floor.int
-  # Adjust x/y depending on origin
-  x = (x.float - (if t.sx < 0: w else: 0) - (if t.sx < 0: -1 else: 1) * t.ox * absSx).nt
-  y = (y.float - (if t.sy < 0: h else: 0) - (if t.sy < 0: -1 else: 1) * t.oy * absSy).nt
+    # Adjust x/y depending on origin
+    x = (x.float - (((if t.sx < 0: w else: 0) - (if t.sx < 0: -1 else: 1)).float * t.ox * absSx)).int
+    y = (y.float - (((if t.sy < 0: h else: 0) - (if t.sy < 0: -1 else: 1)).float * t.oy * absSy)).int
   # Clipped completely offscreen horizontally?
   if x + w < buf.clip.x or x > buf.clip.x + buf.clip.w: return
   # Adjust for clipping
@@ -611,8 +573,8 @@ proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transfo
     d = 0
     dy = 0
     odx = 0
-  if (d = (buf.clip.y - y); d) > 0: dy = d;  sub.y += d / t.sy
-  if (d = (buf.clip.x - x); d) > 0: odx = d; sub.x += d / t.sx
+  if (d = (buf.clip.y - y); d) > 0: dy = d;  sub.y += (d.float / t.sy).int
+  if (d = (buf.clip.x - x); d) > 0: odx = d; sub.x += (d.float / t.sx).int
   if (d = (y + h) - (buf.clip.y + buf.clip.h); d) > 0: h -= d
   if (d = (x + w) - (buf.clip.x + buf.clip.w); d) > 0: w -= d
   # Draw
@@ -635,10 +597,10 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
   var (x, y, t) = (x, y, t)
   # Move rotation value into 0..PI2 range
-  t.r = mod(mod(t.r, PI2) + PI2, PI2)
+  t.r = fmod(fmod(t.r, PI2) + PI2, PI2)
   # Not rotated or scaled? apply offset and draw basic
   if t.r == 0 and t.sx == 1 and t.sy == 1:
-    x -= t.ox; y -= t.oy
+    x = (x.float - t.ox).int; y = (y.float - t.oy).int
     drawBufferBasic(buf, src, x, y, sub)
   elif t.r == 0:
     drawBufferScaled(buf, src, x, y, sub, t)
