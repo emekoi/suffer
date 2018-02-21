@@ -107,11 +107,11 @@ proc floodFill*(buf: Buffer, c: Pixel, x, y: int)
 proc drawPixel*(buf: Buffer, c: Pixel, x, y: int)
   ## draws a pixel of color `c` at (x, y)
 proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int)
-  ## draws a line of color `c` through (x0, y0), (x1, y1) 
+  ## draws a line of color `c` through (x0, y0), (x1, y1)
 proc drawRect*(buf: Buffer, c: Pixel, x, y, w, h: int)
   ## draws a rect with the dimensions w X h, of color `c` at (x, y)
 proc drawBox*(buf: Buffer, c: Pixel, x, y, w, h: int)
-  ## draws a box with the dimensions w X h, of color `c` at (x, y) 
+  ## draws a box with the dimensions w X h, of color `c` at (x, y)
 proc drawCircle*(buf: Buffer, c: Pixel, x, y, r: int)
   ## draws a circle with radius of `r` and color of `c` at (x, y)
 proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int)
@@ -139,7 +139,7 @@ proc genDivTable(): array[256, array[256, uint8]] =
     for a in 0'u8..255'u8:
       result[a][b] = uint8((a shl 8) div b)
 
-# const PI  = 3.14159265359'f32
+const PI  = 3.14159265359'f32
 const PI2 = 6.28318530718'f32
 
 const FX_BITS = 12
@@ -149,18 +149,18 @@ const FX_UNIT = 1 shl FX_BITS
 const div8Table: array[256, array[256, uint8]] = genDivTable()
 
 type
-  # Point = tuple
-    # x, y: int
+  Point = tuple
+    x, y: int
 
   RandState = tuple
     x, y, z, w: uint
 
-# proc `//`[T](n, x: T): T =
-  # if x == 0: return n
-  # return n div x
+proc xdiv[T](n, x: T): T =
+  if x == 0: return n
+  return n div x
 
 proc check(cond: bool, fname: string, msg: string) =
-  if not cond: 
+  if not cond:
     write(stderr, "(error)" & fname & " " & msg & "\n")
     quit(QuitFailure)
 
@@ -229,7 +229,7 @@ proc loadPixels*(buf: Buffer, src: openarray[SomeUnsignedInt], fmt: PixelFormat)
     of FMT_RGBA: (sr =  0; sg =  8; sb = 16; sa = 24;)
     of FMT_ARGB: (sr =  8; sg = 16; sb = 24; sa =  0;)
     of FMT_ABGR: (sr = 24; sg = 16; sb =  8; sa =  0;)
-  
+
   for i in countdown(sz, 0):
     buf.pixels[i].rgba.r = (src[i] shr sr) and 0xff
     buf.pixels[i].rgba.g = (src[i] shr sg) and 0xff
@@ -253,7 +253,7 @@ proc setAlpha*[T](buf: Buffer, alpha: T) =
   buf.mode.alpha = clamp(alpha, 0, 0xff).uint8
 
 proc setColor*(buf: Buffer, c: Pixel) =
-  buf.mode.color.word = c.word and RGB_MASK 
+  buf.mode.color.word = c.word and RGB_MASK
 
 proc setClip*(buf: Buffer, r: Rect) =
   buf.clip = r
@@ -294,7 +294,7 @@ proc copyPixelsScaled(buf, src: Buffer, x, y: int, sub: Rect, scalex, scaley: fl
     (x, y, sub) = (x, y, sub)
     (w, h) = ((sub.w.float * scalex).int, (sub.h.float * scaley).int)
     (inx, iny) = ((FX_UNIT / scalex).int, (FX_UNIT / scaley).int)
-  # Clip to destination buffer  
+  # Clip to destination buffer
   if (d = buf.clip.x - x; d) > 0:
     x += d; sub.x += (d.float / scalex).int; w -= d;
   if (d = buf.clip.y - y; d) > 0:
@@ -336,7 +336,7 @@ proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float) =
   copyPixels(buf, src, x, y, (0, 0, src.w, src.h), sx, sy)
 
 proc noise*(buf: Buffer, seed: uint, low, high: int, grey: bool) =
-  var 
+  var
     s = rand128init(seed)
     high = clamp(high, low + 1, 0xff).uint
     low = clamp(low, 0, 0xfe).uint
@@ -380,7 +380,7 @@ proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
   let alpha = ((s.rgba.a.uint * m.alpha.uint) shr 8).uint8
   var s = s
   if alpha <= 1: return
-  # Color 
+  # Color
   if m.color.word != RGB_MASK:
     s.rgba.r = (s.rgba.r * m.color.rgba.r) shr 8
     s.rgba.g = (s.rgba.g * m.color.rgba.g) shr 8
@@ -425,7 +425,7 @@ proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
     d.rgba.g = lerp(8'u8, d.rgba.g, s.rgba.g, alpha)
     d.rgba.b = lerp(8'u8, d.rgba.b, s.rgba.b, alpha)
   else:
-    let 
+    let
       a = 0xff'u8 - (((0xff'u8 - d.rgba.a) * (0xff'u8 - alpha)) shr 8)
       z = (d.rgba.a * (0xff'u8 - alpha)) shr 8
     d.rgba.r = div8Table[((d.rgba.r * z) shr 8) + ((s.rgba.r * alpha) shr 8)][a]
@@ -448,7 +448,7 @@ proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int) =
   if x0 > x1:
     swap x0, x1
     swap y0, y1
-  var 
+  var
     deltax = x1 - x0
     deltay = abs(y1 - y0)
     error = deltax / 2
@@ -486,7 +486,7 @@ template DRAW_ROW(x, y, len: untyped) =
     rows[y shr 5] = rows[y shr 5] or (1 shl (y and 31)).uint
 
 proc drawCircle*(buf: Buffer, c: Pixel, x, y, r: int) =
-  var 
+  var
     dx = abs(r)
     dy = 0
     radiusError = 1 - dx
@@ -541,15 +541,12 @@ proc drawBufferBasic(buf: Buffer, src: Buffer, x, y: int, sub: Rect) =
   var (sub, x, y) = (sub, x, y)
   clipRectAndOffset(sub.addr, x.addr, y.addr, buf.clip)
   # Clipped off screen?
-  if sub.w <= 0 or sub.h <= 0:
-    echo "erre"
-    return
+  if sub.w <= 0 or sub.h <= 0: return
   # Draw
   for iy in 0..<sub.h:
-    var pd = buf.pixels[x + (y + iy) * buf.w..<buf.pixels.len]
-    var ps = src.pixels[sub.x + (sub.y + iy) * src.w..<src.pixels.len]
     for i in 0..<sub.w:
-      blendPixel(buf.mode, pd[i].addr, ps[i])
+      blendPixel(buf.mode, buf.pixels[(x + (y + iy) * buf.w) + i].addr,
+        src.pixels[(sub.x + (sub.y + iy) * src.w) + i])
 
 proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
   let
@@ -591,8 +588,135 @@ proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transfo
     sy += iy
     dy += 1
 
+proc drawScanLine(buf, src: Buffer, sub: Rect, left, right, dy, sx, sy, sxIncr, syIncr: int) =
+  var 
+    x, y, d = 0
+    (left, right, dy, sx, sy) = (left, right, dy, sx, sy)
+  # Adjust for clipping
+  if dy < buf.clip.y or dy >= buf.clip.y + buf.clip.h: return
+  if (d = buf.clip.x - left; d) > 0:
+    left += d
+    sx += d * sxIncr
+    sy += d * syIncr
+  if (d = right - (buf.clip.x + buf.clip.w); d) > 0:
+    right -= d
+  # Does the scaline length go out of bounds of our `s` rect? If so we
+  # should adjust the scan line and the source coordinates accordingly
+  block checkSourceLeft:
+    while true:
+      x = sx shr FX_BITS
+      y = sy shr FX_BITS
+      if x < sub.x or y < sub.y or x >= sub.x + sub.w or y >= sub.y + sub.h:
+        left += 1
+        sx += sxIncr
+        sy += syIncr
+        if left >= right:
+          return
+      else:
+        break checkSourceLeft
+  block checkSourceRight:
+    while true:
+      x = (sx + sxIncr * (right - left)) shr FX_BITS
+      y = (sy + syIncr * (right - left)) shr FX_BITS
+      if x < sub.x or y < sub.y or x >= sub.x + sub.w or y >= sub.y + sub.h:
+        right -= 1
+        if left >= right: return
+      else:
+        break checkSourceRight
+  # Draw
+  var dx = left;
+  while dx < right:
+    blendPixel(
+      buf.mode, 
+      buf.pixels[dx + dy * buf.w].addr, 
+      src.pixels[(sx shr FX_BITS) +
+      (sy shr FX_BITS) * src.w])
+    sx += sxIncr
+    sy += syIncr
+    dx += 1
+
 proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
-  discard
+  var points: array[4, Point] = [(x:0, y:0), (x:0, y:0), (x:0, y:0), (x:0, y:0)]
+  let 
+    cosr = t.r.cos()
+    sinr = t.r.sin()
+    absSx = if t.sx < 0.0: -t.sx else: t.sx
+    absSy = if t.sy < 0.0: -t.sy else: t.sy
+    invX = t.sx < 0
+    invY = t.sy < 0
+    w = (sub.w.float * absSx).int
+    h = (sub.h.float * absSy).int
+    q = (t.r * 4.0 / PI2).int
+    cosq = (q.float * PI2 / 4.0).cos()
+    sinq = (q.float * PI2 / 4.0).sin()
+    ox = (if invX: sub.w.float - t.ox else: t.ox) * absSx
+    oy = (if invY: sub.h.float - t.oy else: t.oy) * absSy
+  # Store rotated corners as points
+  points[0].x = x + (cosr * (-ox          ) - sinr * (-oy          )).int
+  points[0].y = y + (sinr * (-ox          ) + cosr * (-oy          )).int
+  points[1].x = x + (cosr * (-ox + w.float) - sinr * (-oy          )).int
+  points[1].y = y + (sinr * (-ox + w.float) + cosr * (-oy          )).int
+  points[2].x = x + (cosr * (-ox + w.float) - sinr * (-oy + h.float)).int
+  points[2].y = y + (sinr * (-ox + w.float) + cosr * (-oy + h.float)).int
+  points[3].x = x + (cosr * (-ox          ) - sinr * (-oy + h.float)).int
+  points[3].y = y + (sinr * (-ox          ) + cosr * (-oy + h.float)).int
+  # Set named points based on rotation
+  let top    = points[(-q + 0) and 3]
+  let right  = points[(-q + 1) and 3]
+  let bottom = points[(-q + 2) and 3]
+  let left   = points[(-q + 3) and 3]
+  # Clipped completely off screen?
+  if bottom.y < buf.clip.y or top.y  >= buf.clip.y + buf.clip.h: return
+  if right.x  < buf.clip.x or left.x >= buf.clip.x + buf.clip.w: return
+  # Destination
+  var 
+    xl, xr = top.x shl FX_BITS
+    il = xdiv((left.x - top.x) shl FX_BITS, left.y - top.y)
+    ir = xdiv((right.x - top.x) shl FX_BITS, right.y - top.y)
+  # Source
+  let
+    sxi  = (xdiv(sub.w shl FX_BITS, w).float * cos(-t.r)).int
+    syi  = (xdiv(sub.h shl FX_BITS, h).float * sin(-t.r)).int
+  var
+    sxoi = (xdiv(sub.w shl FX_BITS, left.y - top.y).float * sinq).int
+    syoi = (xdiv(sub.h shl FX_BITS, left.y - top.y).float * cosq).int
+    (sx, sy) = case q
+    of 1: (sub.x shl FX_BITS,                 ((sub.y + sub.h) shl FX_BITS) - 1)
+    of 2: (((sub.x + sub.w) shl FX_BITS) - 1, ((sub.y + sub.h) shl FX_BITS) - 1)
+    of 3: (((sub.x + sub.w) shl FX_BITS) - 1, sub.y shl FX_BITS)
+    else: (sub.x shl FX_BITS,                 sub.y shl FX_BITS)
+    # Draw
+    dy = if left.y == top.y or right.y == top.y:
+        # Adjust for right-angled rotation
+        top.y - 1
+      else:
+        top.y
+  while dy <= bottom.y:
+    # Invert source iterators & increments if we are scaled negatively
+    let (tsx, tsxi) = if invX:
+        (((sub.x * 2 + sub.w) shl FX_BITS) - sx - 1, -sxi)
+      else:
+        (sx, sxi)
+
+    let (tsy, tsyi) = if invY:
+        (((sub.y * 2 + sub.h) shl FX_BITS) - sy - 1, -syi)
+      else:
+        (sy, syi)
+    # Draw row
+    drawScanline(buf, src, sub, xl shr FX_BITS, xr shr FX_BITS, dy,
+      tsx, tsy, tsxi, tsyi);
+    sx += sxoi
+    sy += syoi
+    xl += il
+    xr += ir
+    dy += 1
+    # Modify increments if we've reached the left or right corner */
+    if dy == left.y:
+      il = xdiv((bottom.x - left.x) shl FX_BITS, bottom.y - left.y)
+      sxoi = (xdiv(sub.w shl FX_BITS, bottom.y - left.y).float *  cosq).int
+      syoi = (xdiv(sub.h shl FX_BITS, bottom.y - left.y).float * -sinq).int
+    if dy == right.y:
+      ir = xdiv((bottom.x - right.x) shl FX_BITS, bottom.y - right.y)
 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
   var (x, y, t) = (x, y, t)

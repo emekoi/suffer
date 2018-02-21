@@ -18,4 +18,8 @@ task docs, "generate documentation and place it in the docs folder":
   mkDir "docs"
   for file in listFiles(srcDir):
     if file[^4..<file.len] == ".nim":
-      exec "nimble doc2 -o:docs/" & file[4..^5] & ".html " & file 
+      exec "nimble doc2 -o:docs/" & file[4..^5] & ".html " & file
+
+task test, "runs tests":
+  withDir "tests":
+    exec "nim c -r --d:release test.nim"

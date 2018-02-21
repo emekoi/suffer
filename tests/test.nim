@@ -24,80 +24,83 @@ proc random_color(): Pixel =
   result = random_pixel()
   result.rgba.a = 255
 
-proc draw_noise(buf: Buffer) =
+proc draw_noise(buf: Buffer): bool =
   discard testBuffer
   let b = newBuffer(128, 128)
   b.noise(random(int32.high).uint32, 0, 255, false)
   buf.copyPixels(b, 0, 0, 4.0, 4.0)
 
-proc draw_flood_fill(buf: Buffer) =
+proc draw_flood_fill(buf: Buffer): bool =
   discard testBuffer
   buf.floodFill(random_pixel(), 0, 0)
 
-proc draw_pixel(buf: Buffer) =
+proc draw_pixel(buf: Buffer): bool =
   testBuffer.drawPixel(random_color(), random(128), random(128))
   buf.drawBuffer(testBuffer, 0, 0, (0.0, 0.0, 0.0, 4.0, 4.0, ))
 
-proc draw_line(buf: Buffer) =
+proc draw_line(buf: Buffer): bool =
   discard testBuffer
-  buf.drawLine(random_color(), 512, 512, 0, 0)
+  result = true
+  buf.drawLine(random_color(), 512.random(), 512.random(), 512.random(), 512.random())
 
-proc draw_rect(buf: Buffer) =
+proc draw_rect(buf: Buffer): bool =
   discard testBuffer
-  buf.drawRect(random_color(), 0, 0, 255, 255)
+  result = true
+  buf.drawRect(random_color(), 512.random(), 512.random(), 255.random(), 255.random())
 
-proc draw_box(buf: Buffer) =
+proc draw_box(buf: Buffer): bool =
   discard testBuffer
-  buf.drawBox(random_color(), 0, 0, 255, 255)
+  result = true
+  buf.drawBox(random_color(), 512.random(), 512.random(), 255.random(), 255.random())
 
-proc draw_circle(buf: Buffer) =
+proc draw_circle(buf: Buffer): bool =
   discard testBuffer
+  result = true
+  buf.drawCircle(random_color(), 512.random(), 512.random(), 255.random())
+
+proc draw_ring(buf: Buffer): bool =
+  discard testBuffer
+  result = true
+  buf.draw_ring(random_color(), 512.random(), 512.random(), 255.random())
+
+proc draw_buffer_basic(buf: Buffer): bool =
   let d = (512 div 2) - (255 div 2)
-  buf.drawCircle(random_color(), d, d, 255)
-
-proc draw_ring(buf: Buffer) =
-  discard testBuffer
-  let d = (512 div 2) - (255 div 2)
-  buf.draw_ring(random_color(), d, d, 255)
-
-proc draw_buffer_basic(buf: Buffer) =
-  let d = (512 div 2) - (255 div 2)
-  testBuffer.noise(random(int32.high).uint32, 0, 255, true)
+  testBuffer.noise(random(int32.high).uint32, 0, 255, false)
   testBuffer.drawLine(random_color(), 128, 128, 0, 0)
   testBuffer.drawRect(random_color(), 0, 0, 64, 64)
   testBuffer.drawBox(random_color(), 0, 0, 128, 128)
   testBuffer.drawCircle(random_color(), d, d, 16)
   testBuffer.drawRing(random_color(), d, d, 96)
   testBuffer.drawPixel(random_color(), 128, 128)
-  buf.drawBuffer(testBuffer, 10, 15)
+  buf.drawBuffer(testBuffer, 0, 0)
 
 
-proc draw_buffer_scaled(buf: Buffer) =
+proc draw_buffer_scaled(buf: Buffer): bool =
   let d = (512 div 2) - (255 div 2)
-  testBuffer.noise(random(int32.high).uint32, 0, 255, true)
+  testBuffer.noise(random(int32.high).uint32, 0, 255, false)
   testBuffer.drawLine(random_color(), 128, 128, 0, 0)
   testBuffer.drawRect(random_color(), 0, 0, 64, 64)
   testBuffer.drawBox(random_color(), 0, 0, 128, 128)
   testBuffer.drawCircle(random_color(), d, d, 16)
   testBuffer.drawRing(random_color(), d, d, 96)
   testBuffer.drawPixel(random_color(), 128, 128)
-  buf.drawBuffer(testBuffer, -40, -23, (0.0, 0.0, 0.0, 3.0, 2.0))
+  buf.drawBuffer(testBuffer, 0, 0, (0.0, 0.0, 0.0, 3.0, 2.0))
 
 
-# proc draw_buffer_rotate_scaled(buf: Buffer) =
-#   let d = (512 div 2) - (255 div 2)
-#   testBuffer.noise(random(int32.high).uint32, 0, 255, true)
-#   testBuffer.drawLine(random_color(), 128, 128, 0, 0)
-#   testBuffer.drawRect(random_color(), 0, 0, 64, 64)
-#   testBuffer.drawBox(random_color(), 0, 0, 128, 128)
-#   testBuffer.drawCircle(random_color(), d, d, 16)
-#   testBuffer.drawRing(random_color(), d, d, 96)
-#   testBuffer.drawPixel(random_color(), 128, 128)
-#   ticks = fmod((ticks + 0.2),  3.0); rot += 1.0;
-#   buf.drawBuffer(testBuffer, 256, 256,
-#     (63.0, 63.0, rot.degToRad(),
-#     2.0 * ticks.sin() + 1.0,
-#     2.0 * ticks.sin() + 1.0))
+proc draw_buffer_rotate_scaled(buf: Buffer): bool =
+  let d = (512 div 2) - (255 div 2)
+  testBuffer.noise(random(int32.high).uint32, 0, 255, false)
+  testBuffer.drawLine(random_color(), 128, 128, 0, 0)
+  testBuffer.drawRect(random_color(), 0, 0, 64, 64)
+  testBuffer.drawBox(random_color(), 0, 0, 128, 128)
+  testBuffer.drawCircle(random_color(), d, d, 16)
+  testBuffer.drawRing(random_color(), d, d, 96)
+  testBuffer.drawPixel(random_color(), 128.random(), 128.random())
+  ticks += 0.02; rot = (rot + 1.0);
+  buf.drawBuffer(testBuffer, 256, 256,
+    (63.0, 63.0, rot.degToRad(),
+    2.0 * ticks.sin().abs() + 0.4,
+    2.0 * ticks.sin().abs() + 0.4))
 
 const
   Title = "drawing-test | "
@@ -114,6 +117,7 @@ const
     draw_ring,
     draw_buffer_basic,
     draw_buffer_scaled,
+    draw_buffer_rotate_scaled
   ]
   max_fps = 60.0
   total_tests = Tests.len()
@@ -146,12 +150,12 @@ proc exit(app: App) =
   sdl.quit()
   sdl.logInfo sdl.LogCategoryApplication, "SDL shutdown completed"
 
-proc draw(app: App, cb: proc(canvas: Buffer)) =
+proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
   let screen = app.window.getWindowSurface
   if screen != nil and screen.mustLock():
     if screen.lockSurface() != 0:
       quit "ERROR: couldn't lock screen: " & $sdl.getError()
-  cb(app.canvas)
+  result = cb(app.canvas)
   copyMem(screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
   if screen != nil and screen.mustLock(): screen.unlockSurface()
   if app.window.updateWindowSurface() != 0:
@@ -162,6 +166,7 @@ proc update(app: App) =
     current_test = 0
     last = 0.0
     e: sdl.Event
+    clear = true
     
   while true:
     app.window.setWindowTitle(Title & $timer.getFps() & " fps")
@@ -179,14 +184,18 @@ proc update(app: App) =
               total_tests - 1
             else:
               current_test - 1
+          testBuffer.clear(color(0, 0, 0))
+          clear = false
         of sdl.K_RIGHT:
           current_test = (current_test + 1) mod total_tests
+          testBuffer.clear(color(0, 0, 0))
+          clear = false
         else: discard
       else: discard
     
     timer.step()
-    app.canvas.clear(color(0, 0, 0))
-    app.draw(Tests[current_test])
+    if not clear: app.canvas.clear(color(0, 0, 0))
+    clear = app.draw(Tests[current_test])
     let step = 1.0 / max_fps
     let now = sdl.getTicks().float / 1000.0
     let wait = step - (now - last);
