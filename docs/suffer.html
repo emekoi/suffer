@@ -1250,7 +1250,11 @@ function main() {
   <li><a class="reference" href="#Transform"
     title="Transform = tuple[ox, oy, r, sx, sy: float]"><wbr />Transform<span class="attachedType" style="visibility:hidden"></span></a></li>
   <li><a class="reference" href="#Buffer"
-    title="Buffer = BufferOwned | BufferShared"><wbr />Buffer<span class="attachedType" style="visibility:hidden"></span></a></li>
+    title="Buffer = ref object
+  mode*: DrawMode
+  clip*: Rect
+  pixels*: seq[Pixel]
+  w*, h*: int"><wbr />Buffer<span class="attachedType" style="visibility:hidden"></span></a></li>
 
   </ul>
 </li>
@@ -1259,18 +1263,18 @@ function main() {
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#pixel,T,T,T,T"
     title="pixel[T](r, g, b, a: T): Pixel"><wbr />pixel<span class="attachedType" style="visibility:hidden">Pixel</span></a></li>
+  <li><a class="reference" href="#pixel,int"
+    title="pixel(c: int): Pixel"><wbr />pixel<span class="attachedType" style="visibility:hidden">Pixel</span></a></li>
+  <li><a class="reference" href="#pixel,string"
+    title="pixel(c: string): Pixel"><wbr />pixel<span class="attachedType" style="visibility:hidden">Pixel</span></a></li>
   <li><a class="reference" href="#color,T,T,T"
     title="color[T](r, g, b: T): Pixel"><wbr />color<span class="attachedType" style="visibility:hidden">Pixel</span></a></li>
-  <li><a class="reference" href="#color,"
-    title="color(): Pixel"><wbr />color<span class="attachedType" style="visibility:hidden">Pixel</span></a></li>
   <li><a class="reference" href="#newBuffer,int,int"
     title="newBuffer(w, h: int): Buffer"><wbr />new<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
-  <li><a class="reference" href="#newBufferShared,pointer,int,int"
-    title="newBufferShared(pixels: pointer; w, h: int): Buffer"><wbr />new<wbr />Buffer<wbr />Shared<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#cloneBuffer,Buffer"
     title="cloneBuffer(src: Buffer): Buffer"><wbr />clone<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
-  <li><a class="reference" href="#loadPixels,Buffer,openArray[uint8],PixelFormat"
-    title="loadPixels(buf: Buffer; src: openArray[uint8]; fmt: PixelFormat)"><wbr />load<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#loadPixels,Buffer,openArray[SomeUnsignedInt],PixelFormat"
+    title="loadPixels(buf: Buffer; src: openArray[SomeUnsignedInt]; fmt: PixelFormat)"><wbr />load<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#loadPixels8,Buffer,openArray[uint8],openArray[Pixel]"
     title="loadPixels8(buf: Buffer; src: openArray[uint8]; pal: openArray[Pixel])"><wbr />load<wbr />Pixels8<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#loadPixels8,Buffer,openArray[uint8]"
@@ -1295,8 +1299,8 @@ function main() {
     title="copyPixels(buf, src: Buffer; x, y: int; sub: Rect; sx, sy: float)"><wbr />copy<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#copyPixels,Buffer,Buffer,int,int,float,float"
     title="copyPixels(buf, src: Buffer; x, y: int; sx, sy: float)"><wbr />copy<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
-  <li><a class="reference" href="#noise,Buffer,uint,int,int,int"
-    title="noise(buf: Buffer; seed: uint; low, high, grey: int)"><wbr />noise<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#noise,Buffer,uint,int,int,bool"
+    title="noise(buf: Buffer; seed: uint; low, high: int; grey: bool)"><wbr />noise<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#floodFill,Buffer,Pixel,int,int"
     title="floodFill(buf: Buffer; c: Pixel; x, y: int)"><wbr />flood<wbr />Fill<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#drawPixel,Buffer,Pixel,int,int"
@@ -1319,6 +1323,20 @@ function main() {
     title="drawBuffer(buf: Buffer; src: Buffer; x, y: int; t: Transform)"><wbr />draw<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#drawBuffer,Buffer,Buffer,int,int"
     title="drawBuffer(buf: Buffer; src: Buffer; x, y: int)"><wbr />draw<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#desaturate,Buffer,int"
+    title="desaturate(buf: Buffer; amount: int)"><wbr />desaturate<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#mask,Buffer,Buffer,char"
+    title="mask(buf, mask: Buffer; channel: char)"><wbr />mask<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#palette,Buffer,openArray[Pixel]"
+    title="palette(buf: Buffer; palette: openArray[Pixel])"><wbr />palette<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#dissolve,Buffer,int,uint"
+    title="dissolve(buf: Buffer; amount: int; seed: uint)"><wbr />dissolve<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#wave,Buffer,Buffer,int,int,int,int,int,int"
+    title="wave(buf, src: Buffer; amountX, amountY, scaleX, scaleY: int; offsetX, offsetY: int = 0)"><wbr />wave<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#displace,Buffer,Buffer,Buffer,char,char,int,int"
+    title="displace(buf, src, map: Buffer; channelX, channelY: char; scaleX, scaleY: int)"><wbr />displace<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#blur,Buffer,Buffer,int,int"
+    title="blur(buf, src: Buffer; radiusx, radiusy: int)"><wbr />blur<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
 
   </ul>
 </li>
@@ -1340,14 +1358,14 @@ function main() {
 <dt id="PixelFormat"><a name="PixelFormat"></a><pre><span class="Identifier">PixelFormat</span> <span class="Other">=</span> <span class="Keyword">enum</span>
   <span class="Identifier">FMT_BGRA</span><span class="Other">,</span> <span class="Identifier">FMT_RGBA</span><span class="Other">,</span> <span class="Identifier">FMT_ARGB</span><span class="Other">,</span> <span class="Identifier">FMT_ABGR</span></pre></dt>
 <dd>
-
+the different pixel formats supported
 
 </dd>
 <dt id="BlendMode"><a name="BlendMode"></a><pre><span class="Identifier">BlendMode</span> <span class="Other">=</span> <span class="Keyword">enum</span>
   <span class="Identifier">BLEND_ALPHA</span><span class="Other">,</span> <span class="Identifier">BLEND_COLOR</span><span class="Other">,</span> <span class="Identifier">BLEND_ADD</span><span class="Other">,</span> <span class="Identifier">BLEND_SUBTRACT</span><span class="Other">,</span> <span class="Identifier">BLEND_MULTIPLY</span><span class="Other">,</span> <span class="Identifier">BLEND_LIGHTEN</span><span class="Other">,</span>
   <span class="Identifier">BLEND_DARKEN</span><span class="Other">,</span> <span class="Identifier">BLEND_SCREEN</span><span class="Other">,</span> <span class="Identifier">BLEND_DIFFERENCE</span></pre></dt>
 <dd>
-
+the different blend modes supported
 
 </dd>
 <dt id="Pixel"><a name="Pixel"></a><pre><span class="Identifier">Pixel</span> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">union</span></div><span class="Other pragmaend">.}</span>
@@ -1366,12 +1384,12 @@ function main() {
 
   </pre></dt>
 <dd>
-
+how color is represented dependeding on which mode is defined at compile time, a different color format is used
 
 </dd>
 <dt id="Rect"><a name="Rect"></a><pre><span class="Identifier">Rect</span> <span class="Other">=</span> <span class="Keyword">tuple</span><span class="Other">[</span><span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">]</span></pre></dt>
 <dd>
-
+a rectangle used for clipping and drawing specific regions of buffer
 
 </dd>
 <dt id="DrawMode"><a name="DrawMode"></a><pre><span class="Identifier">DrawMode</span> <span class="Other">=</span> <span class="Keyword">object</span>
@@ -1380,17 +1398,22 @@ function main() {
   <span class="Identifier">blend</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">BlendMode</span>
 </pre></dt>
 <dd>
-
+affects how things are drawn onto the buffer
 
 </dd>
 <dt id="Transform"><a name="Transform"></a><pre><span class="Identifier">Transform</span> <span class="Other">=</span> <span class="Keyword">tuple</span><span class="Other">[</span><span class="Identifier">ox</span><span class="Other">,</span> <span class="Identifier">oy</span><span class="Other">,</span> <span class="Identifier">r</span><span class="Other">,</span> <span class="Identifier">sx</span><span class="Other">,</span> <span class="Identifier">sy</span><span class="Other">:</span> <span class="Identifier">float</span><span class="Other">]</span></pre></dt>
 <dd>
-
+describes a tranformation applied to a buffer when it is drawn onto another buffer
 
 </dd>
-<dt id="Buffer"><a name="Buffer"></a><pre><span class="Identifier">Buffer</span> <span class="Other">=</span> <span class="Identifier">BufferOwned</span> <span class="Operator">|</span> <span class="Identifier">BufferShared</span></pre></dt>
+<dt id="Buffer"><a name="Buffer"></a><pre><span class="Identifier">Buffer</span> <span class="Other">=</span> <span class="Keyword">ref</span> <span class="Keyword">object</span>
+  <span class="Identifier">mode</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">DrawMode</span>
+  <span class="Identifier">clip</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">Rect</span>
+  <span class="Identifier">pixels</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">Pixel</span><span class="Other">]</span>
+  <span class="Identifier">w</span><span class="Operator">*</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
+</pre></dt>
 <dd>
-
+a collection of pixels that represents an image
 
 </dd>
 
@@ -1400,50 +1423,52 @@ function main() {
 <dl class="item">
 <dt id="pixel"><a name="pixel,T,T,T,T"></a><pre><span class="Keyword">proc</span> <span class="Identifier">pixel</span><span class="Other">[</span><span class="Identifier">T</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">r</span><span class="Other">,</span> <span class="Identifier">g</span><span class="Other">,</span> <span class="Identifier">b</span><span class="Other">,</span> <span class="Identifier">a</span><span class="Other">:</span> <span class="Identifier">T</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Pixel</span></pre></dt>
 <dd>
-creates a pixel with the color rgba(r, g, b, a)
+creates a pixel with the color <cite>rgba(r, g, b, a)</cite>
+
+</dd>
+<dt id="pixel"><a name="pixel,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">pixel</span><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Pixel</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+creates a pixel from the given int
+
+</dd>
+<dt id="pixel"><a name="pixel,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">pixel</span><span class="Other">(</span><span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Pixel</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+creates a pixel from the given hex color code
 
 </dd>
 <dt id="color"><a name="color,T,T,T"></a><pre><span class="Keyword">proc</span> <span class="Identifier">color</span><span class="Other">[</span><span class="Identifier">T</span><span class="Other">]</span><span class="Other">(</span><span class="Identifier">r</span><span class="Other">,</span> <span class="Identifier">g</span><span class="Other">,</span> <span class="Identifier">b</span><span class="Other">:</span> <span class="Identifier">T</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Pixel</span></pre></dt>
 <dd>
-creates a pixel with the color rgba(r, g, b, 255)
+an alias for <cite>pixel(r, g, b, 255)</cite>
 
 </dd>
-<dt id="color"><a name="color,"></a><pre><span class="Keyword">proc</span> <span class="Identifier">color</span><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Pixel</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
-<dd>
-creates a black pixel
-
-</dd>
-<dt id="newBuffer"><a name="newBuffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBuffer</span><span class="Other">(</span><span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span></pre></dt>
+<dt id="newBuffer"><a name="newBuffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBuffer</span><span class="Other">(</span><span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+                               <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 creates a pixel buffer
 
 </dd>
-<dt id="newBufferShared"><a name="newBufferShared,pointer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBufferShared</span><span class="Other">(</span><span class="Identifier">pixels</span><span class="Other">:</span> <span class="Identifier">pointer</span><span class="Other">;</span> <span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span></pre></dt>
-<dd>
-creates a pixel buffer that shares its pixels with another object
-
-</dd>
-<dt id="cloneBuffer"><a name="cloneBuffer,Buffer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">cloneBuffer</span><span class="Other">(</span><span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span></pre></dt>
+<dt id="cloneBuffer"><a name="cloneBuffer,Buffer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">cloneBuffer</span><span class="Other">(</span><span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 creates a copy of the buffer
 
 </dd>
-<dt id="loadPixels"><a name="loadPixels,Buffer,openArray[uint8],PixelFormat"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">fmt</span><span class="Other">:</span> <span class="Identifier">PixelFormat</span><span class="Other">)</span></pre></dt>
+<dt id="loadPixels"><a name="loadPixels,Buffer,openArray[SomeUnsignedInt],PixelFormat"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">SomeUnsignedInt</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">fmt</span><span class="Other">:</span> <span class="Identifier">PixelFormat</span><span class="Other">)</span></pre></dt>
 <dd>
 loads the data from <cite>src</cite> into the buffer using the given pixel format
 
 </dd>
-<dt id="loadPixels8"><a name="loadPixels8,Buffer,openArray[uint8],openArray[Pixel]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels8</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">pal</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">Pixel</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
+<dt id="loadPixels8"><a name="loadPixels8,Buffer,openArray[uint8],openArray[Pixel]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels8</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">pal</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">Pixel</span><span class="Other">]</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 loads the data from <cite>src</cite> into the buffer using the given palette
 
 </dd>
-<dt id="loadPixels8"><a name="loadPixels8,Buffer,openArray[uint8]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels8</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">)</span></pre></dt>
+<dt id="loadPixels8"><a name="loadPixels8,Buffer,openArray[uint8]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels8</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint8</span><span class="Other">]</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 loads the data from <cite>src</cite> into the buffer, using it set the alpha of all its pixels
 
 </dd>
-<dt id="setBlend"><a name="setBlend,Buffer,BlendMode"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setBlend</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">blend</span><span class="Other">:</span> <span class="Identifier">BlendMode</span><span class="Other">)</span></pre></dt>
+<dt id="setBlend"><a name="setBlend,Buffer,BlendMode"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setBlend</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">blend</span><span class="Other">:</span> <span class="Identifier">BlendMode</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 sets the buffer's blend mode
 
@@ -1453,104 +1478,147 @@ sets the buffer's blend mode
 sets the buffer's alpha
 
 </dd>
-<dt id="setColor"><a name="setColor,Buffer,Pixel"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setColor</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">)</span></pre></dt>
+<dt id="setColor"><a name="setColor,Buffer,Pixel"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setColor</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 sets the buffer's color
 
 </dd>
-<dt id="setClip"><a name="setClip,Buffer,Rect"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setClip</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">)</span></pre></dt>
+<dt id="setClip"><a name="setClip,Buffer,Rect"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setClip</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 sets the buffer's clipping rectanlge
 
 </dd>
-<dt id="reset"><a name="reset,Buffer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">reset</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">)</span></pre></dt>
+<dt id="reset"><a name="reset,Buffer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">reset</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 resets the buffer to a default state
 
 </dd>
-<dt id="clear"><a name="clear,Buffer,Pixel"></a><pre><span class="Keyword">proc</span> <span class="Identifier">clear</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">)</span></pre></dt>
+<dt id="clear"><a name="clear,Buffer,Pixel"></a><pre><span class="Keyword">proc</span> <span class="Identifier">clear</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 sets the buffer's blend mode
 
 </dd>
-<dt id="getPixel"><a name="getPixel,Buffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Pixel</span></pre></dt>
+<dt id="getPixel"><a name="getPixel,Buffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">getPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Pixel</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 gets the color of the pixel at (x, y) on the buffer
 
 </dd>
-<dt id="setPixel"><a name="setPixel,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="setPixel"><a name="setPixel,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">setPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 sets the color of the pixel at (x, y) on the buffer
 
 </dd>
-<dt id="copyPixels"><a name="copyPixels,Buffer,Buffer,int,int,Rect,float,float"></a><pre><span class="Keyword">proc</span> <span class="Identifier">copyPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">;</span> <span class="Identifier">sx</span><span class="Other">,</span> <span class="Identifier">sy</span><span class="Other">:</span> <span class="Identifier">float</span><span class="Other">)</span></pre></dt>
+<dt id="copyPixels"><a name="copyPixels,Buffer,Buffer,int,int,Rect,float,float"></a><pre><span class="Keyword">proc</span> <span class="Identifier">copyPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">;</span> <span class="Identifier">sx</span><span class="Other">,</span> <span class="Identifier">sy</span><span class="Other">:</span> <span class="Identifier">float</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 copies the pixels from one buffer to another
 
 </dd>
-<dt id="copyPixels"><a name="copyPixels,Buffer,Buffer,int,int,float,float"></a><pre><span class="Keyword">proc</span> <span class="Identifier">copyPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sx</span><span class="Other">,</span> <span class="Identifier">sy</span><span class="Other">:</span> <span class="Identifier">float</span><span class="Other">)</span></pre></dt>
+<dt id="copyPixels"><a name="copyPixels,Buffer,Buffer,int,int,float,float"></a><pre><span class="Keyword">proc</span> <span class="Identifier">copyPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sx</span><span class="Other">,</span> <span class="Identifier">sy</span><span class="Other">:</span> <span class="Identifier">float</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 copies the pixels from one buffer to another
 
 </dd>
-<dt id="noise"><a name="noise,Buffer,uint,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">noise</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">seed</span><span class="Other">:</span> <span class="Identifier">uint</span><span class="Other">;</span> <span class="Identifier">low</span><span class="Other">,</span> <span class="Identifier">high</span><span class="Other">,</span> <span class="Identifier">grey</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="noise"><a name="noise,Buffer,uint,int,int,bool"></a><pre><span class="Keyword">proc</span> <span class="Identifier">noise</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">seed</span><span class="Other">:</span> <span class="Identifier">uint</span><span class="Other">;</span> <span class="Identifier">low</span><span class="Other">,</span> <span class="Identifier">high</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">grey</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 fills the buffer with psuedo-random noise in the form of pixels
 
 </dd>
-<dt id="floodFill"><a name="floodFill,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">floodFill</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="floodFill"><a name="floodFill,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">floodFill</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 fills the pixel (x, y) and all surrounding pixels of the same color with the color <cite>c</cite>
 
 </dd>
-<dt id="drawPixel"><a name="drawPixel,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="drawPixel"><a name="drawPixel,Buffer,Pixel,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawPixel</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 draws a pixel of color <cite>c</cite> at (x, y)
 
 </dd>
-<dt id="drawLine"><a name="drawLine,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawLine</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x0</span><span class="Other">,</span> <span class="Identifier">y0</span><span class="Other">,</span> <span class="Identifier">x1</span><span class="Other">,</span> <span class="Identifier">y1</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="drawLine"><a name="drawLine,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawLine</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x0</span><span class="Other">,</span> <span class="Identifier">y0</span><span class="Other">,</span> <span class="Identifier">x1</span><span class="Other">,</span> <span class="Identifier">y1</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
-draws a line of color <cite>c</cite> through (x0, y0), (x1, y1) 
+draws a line of color <cite>c</cite> through (x0, y0), (x1, y1)
 
 </dd>
-<dt id="drawRect"><a name="drawRect,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawRect</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="drawRect"><a name="drawRect,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawRect</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 draws a rect with the dimensions w X h, of color <cite>c</cite> at (x, y)
 
 </dd>
-<dt id="drawBox"><a name="drawBox,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBox</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="drawBox"><a name="drawBox,Buffer,Pixel,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBox</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
-draws a box with the dimensions w X h, of color <cite>c</cite> at (x, y) 
+draws a box with the dimensions w X h, of color <cite>c</cite> at (x, y)
 
 </dd>
-<dt id="drawCircle"><a name="drawCircle,Buffer,Pixel,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawCircle</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="drawCircle"><a name="drawCircle,Buffer,Pixel,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawCircle</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 draws a circle with radius of <cite>r</cite> and color of <cite>c</cite> at (x, y)
 
 </dd>
-<dt id="drawRing"><a name="drawRing,Buffer,Pixel,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawRing</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="drawRing"><a name="drawRing,Buffer,Pixel,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawRing</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">c</span><span class="Other">:</span> <span class="Identifier">Pixel</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">r</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 draws a ring with a radius of <cite>r</cite> and color of <cite>c</cite> at (x, y)
 
 </dd>
-<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Rect,Transform"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">;</span> <span class="Identifier">t</span><span class="Other">:</span> <span class="Identifier">Transform</span><span class="Other">)</span></pre></dt>
+<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Rect,Transform"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">;</span> <span class="Identifier">t</span><span class="Other">:</span> <span class="Identifier">Transform</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 draw the Buffer <cite>src</cite> at (x, y) with a clipping rect of <cite>sub</cite> and a transform of <cite>t</cite>
 
 </dd>
-<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Rect"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">)</span></pre></dt>
+<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Rect"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">sub</span><span class="Other">:</span> <span class="Identifier">Rect</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 draw the Buffer <cite>src</cite> at (x, y) with a clipping rect of <cite>sub</cite>
 
 </dd>
-<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Transform"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">t</span><span class="Other">:</span> <span class="Identifier">Transform</span><span class="Other">)</span></pre></dt>
+<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int,Transform"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">t</span><span class="Other">:</span> <span class="Identifier">Transform</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 draw the Buffer <cite>src</cite> at (x, y) with a transform of <cite>t</cite>
 
 </dd>
-<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span></pre></dt>
+<dt id="drawBuffer"><a name="drawBuffer,Buffer,Buffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">drawBuffer</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 draw the Buffer <cite>src</cite> at (x, y)
+
+</dd>
+<dt id="desaturate"><a name="desaturate,Buffer,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">desaturate</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">amount</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+desaturates the buffer by the given amount
+
+</dd>
+<dt id="mask"><a name="mask,Buffer,Buffer,char"></a><pre><span class="Keyword">proc</span> <span class="Identifier">mask</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">mask</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">channel</span><span class="Other">:</span> <span class="Identifier">char</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+uses the buffer <cite>mask</cite> to mask the given channel on the buffer
+
+</dd>
+<dt id="palette"><a name="palette,Buffer,openArray[Pixel]"></a><pre><span class="Keyword">proc</span> <span class="Identifier">palette</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">palette</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">Pixel</span><span class="Other">]</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+converts the buffer to the given palette
+
+</dd>
+<dt id="dissolve"><a name="dissolve,Buffer,int,uint"></a><pre><span class="Keyword">proc</span> <span class="Identifier">dissolve</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">amount</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">seed</span><span class="Other">:</span> <span class="Identifier">uint</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+randomly dissolves the palette by the given amount
+
+</dd>
+<dt id="wave"><a name="wave,Buffer,Buffer,int,int,int,int,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">wave</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">amountX</span><span class="Other">,</span> <span class="Identifier">amountY</span><span class="Other">,</span> <span class="Identifier">scaleX</span><span class="Other">,</span> <span class="Identifier">scaleY</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span>
+         <span class="Identifier">offsetX</span><span class="Other">,</span> <span class="Identifier">offsetY</span><span class="Other">:</span> <span class="Identifier">int</span> <span class="Other">=</span> <span class="DecNumber">0</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+distorts <cite>src</cite> in a wave-like pattern as it is drawn onto <cite>buf</cite>
+
+</dd>
+<dt id="displace"><a name="displace,Buffer,Buffer,Buffer,char,char,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">displace</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">,</span> <span class="Identifier">map</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">channelX</span><span class="Other">,</span> <span class="Identifier">channelY</span><span class="Other">:</span> <span class="Identifier">char</span><span class="Other">;</span> <span class="Identifier">scaleX</span><span class="Other">,</span> <span class="Identifier">scaleY</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma">
+    <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+uses <cite>map</cite> to displace <cite>src</cite>, then draws <cite>src</cite> onto <cite>buf</cite>
+
+</dd>
+<dt id="blur"><a name="blur,Buffer,Buffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">blur</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">,</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">radiusx</span><span class="Other">,</span> <span class="Identifier">radiusy</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+blurs then draws <cite>src</cite> onto <cite>buf</cite>
 
 </dd>
 
@@ -1563,7 +1631,7 @@ draw the Buffer <cite>src</cite> at (x, y)
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-02-17 22:47:44 UTC</small>
+        <small>Made with Nim. Generated: 2018-02-21 22:40:18 UTC</small>
       </div>
     </div>
   </div>

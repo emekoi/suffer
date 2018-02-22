@@ -22,12 +22,14 @@ else:
 
 type
   PixelFormat* = enum
+    ## the different pixel formats supported
     FMT_BGRA
     FMT_RGBA
     FMT_ARGB
     FMT_ABGR
 
   BlendMode* = enum
+    ## the different blend modes supported
     BLEND_ALPHA
     BLEND_COLOR
     BLEND_ADD
@@ -39,6 +41,8 @@ type
     BLEND_DIFFERENCE
 
   Pixel* = object {.union.}
+    ## how color is represented
+    ## dependeding on which mode is defined at compile time, a different color format is used
     word*: uint32
     when defined(MODE_RGBA):
       rgba*: tuple[r, g, b, a: uint8]
@@ -50,26 +54,32 @@ type
       rgba*: tuple[b, g, r, a: uint8]
 
   Rect* = tuple
+    ## a rectangle used for clipping and drawing specific regions of buffer
     x, y, w, h: int
 
   DrawMode* = object
+    ## affects how things are drawn onto the buffer
     color*: Pixel
     alpha*: uint8
     blend*: BlendMode
 
   Transform* = tuple
+    ## describes a tranformation applied to a buffer when it is drawn onto another buffer
     ox, oy, r, sx, sy: float
 
   Buffer* = ref object
+    ## a collection of pixels that represents an image
     mode*: DrawMode
     clip*: Rect
     pixels*: seq[Pixel]
     w*, h*: int
 
 proc pixel*[T](r, g, b, a: T): Pixel
-  ## creates a pixel with the color rgba(r, g, b, a)
+  ## creates a pixel with the color `rgba(r, g, b, a)`
+proc color*(c: string): Pixel
+  ## creates a pixel from the given hex color code
 proc color*[T](r, g, b: T): Pixel
-  ## creates a pixel with the color rgba(r, g, b, 255)
+  ## an alias for `pixel(r, g, b, 255)`
 proc newBuffer*(w, h: int): Buffer
   ## creates a pixel buffer
 proc cloneBuffer*(src: Buffer): Buffer
@@ -124,9 +134,20 @@ proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, t: Transform)
   ## draw the Buffer `src` at (x, y) with a transform of `t`
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int)
   ## draw the Buffer `src` at (x, y)
-
-# proc box[T](x: T): ref T =
-#   new(result); result[] = x
+proc desaturate*(buf: Buffer, amount: int)
+  ## desaturates the buffer by the given amount
+proc mask*(buf, mask: Buffer, channel: char)
+  ## uses the buffer `mask` to mask the given channel on the buffer
+proc palette*(buf: Buffer, palette: openarray[Pixel])
+  ## converts the buffer to the given palette
+proc dissolve*(buf: Buffer, amount: int, seed: uint)
+  ## randomly dissolves the palette by the given amount
+proc wave*(buf, src: Buffer, amountX, amountY, scaleX, scaleY: int, offsetX, offsetY: int = 0)
+  ## distorts `src` in a wave-like pattern as it is drawn onto `buf`
+proc displace*(buf, src, map: Buffer, channelX, channelY: char, scaleX, scaleY: int)
+  ## uses `map` to displace `src`, then draws `src` onto `buf`
+proc blur*(buf, src: Buffer, radiusx, radiusy: int)
+  ## blurs then draws `src` onto `buf`
 
 proc `$`*(p: Pixel): string =
   return "($#, ($#, $#, $#, $#))" % [$p.word, $p.rgba.r, $p.rgba.g, $p.rgba.b, $p.rgba.a]
@@ -134,20 +155,29 @@ proc `$`*(p: Pixel): string =
 proc lerp[T](bits, a, b, p: T): T =
   return (a + (b - a) * p) shr bits
 
+const
+  PI2 = 6.28318530718'f32
+  FX_BITS_12 = 12
+  FX_UNIT_12 = 1 shl FX_BITS_12
+  # FX_MASK = FX_UNIT_12 - 1
+  FX_BITS_10 = 10
+  FX_UNIT_10 = 1 shl FX_BITS_10
+  FX_MASK_10 = FX_UNIT_10 - 1
+
 proc genDivTable(): array[256, array[256, uint8]] =
   for b in 1'u8..255'u8:
     for a in 0'u8..255'u8:
       result[a][b] = uint8((a shl 8) div b)
 
-const PI  = 3.14159265359'f32
-const PI2 = 6.28318530718'f32
+proc genSinTable(): array[FX_UNIT_10, int] =
+  # make a sin table
+  for i in 0..<FX_UNIT_10:
+    result[i] = (sin((i.float / FX_UNIT_10.float) * 6.28318530718) * FX_UNIT_10).int
 
-const FX_BITS = 12
-const FX_UNIT = 1 shl FX_BITS
-# const FX_MASK = FX_UNIT - 1
-
-const div8Table: array[256, array[256, uint8]] = genDivTable()
-
+const
+  div8Table: array[256, array[256, uint8]] = genDivTable()  
+  tableSin = genSinTable()
+  
 type
   Point = tuple
     x, y: int
@@ -163,6 +193,13 @@ proc check(cond: bool, fname: string, msg: string) =
   if not cond:
     write(stderr, "(error)" & fname & " " & msg & "\n")
     quit(QuitFailure)
+
+proc fxsin(n: int): int =
+  return tableSin[n and FX_MASK_10]
+
+proc checkBufferSizesMatch(a, b: Buffer, fname: string) =
+  check(a.w != b.w or a.h != b.h, fname, "expected buffer sizes to match") 
+    
 
 proc rand128init(seed: uint): RandState =
   result.x = (seed and 0xff000000'u) or 1'u
@@ -182,6 +219,19 @@ proc pixel*[T](r, g, b, a: T): Pixel =
   result.rgba.b = clamp(b, 0, 0xff).uint8
   result.rgba.a = clamp(a, 0, 0xff).uint8
 
+proc color*(c: string): Pixel =
+  let hex = parseHexInt(c)
+  if hex >= 0xffffff:
+    result.rgba.r = (hex shr 24) and 0xff
+    result.rgba.g = (hex shr 16) and 0xff
+    result.rgba.b = (hex shr  8) and 0xff
+    result.rgba.a = (hex shr  0) and 0xff
+  else:
+    result.rgba.r = (hex shr 16) and 0xff
+    result.rgba.g = (hex shr  8) and 0xff
+    result.rgba.b = (hex shr  0) and 0xff
+    result.rgba.a = 0xff
+  
 proc color*[T](r, g, b: T): Pixel =
   return pixel(r, g, b, 0xff)
 
@@ -293,7 +343,7 @@ proc copyPixelsScaled(buf, src: Buffer, x, y: int, sub: Rect, scalex, scaley: fl
     d: int
     (x, y, sub) = (x, y, sub)
     (w, h) = ((sub.w.float * scalex).int, (sub.h.float * scaley).int)
-    (inx, iny) = ((FX_UNIT / scalex).int, (FX_UNIT / scaley).int)
+    (inx, iny) = ((FX_UNIT_12 / scalex).int, (FX_UNIT_12 / scaley).int)
   # Clip to destination buffer
   if (d = buf.clip.x - x; d) > 0:
     x += d; sub.x += (d.float / scalex).int; w -= d;
@@ -304,17 +354,17 @@ proc copyPixelsScaled(buf, src: Buffer, x, y: int, sub: Rect, scalex, scaley: fl
   # Clipped offscreen
   if w == 0 or h == 0: return
   # Draw
-  var sy = sub.y shl FX_BITS
+  var sy = sub.y shl FX_BITS_12
 
   for dy in y..<(y + h):
     var
       sx = 0
       dx = x + buf.w * dy
     let
-      pixels = src.pixels[((sub.x shr FX_BITS) + src.w * (sy shr FX_BITS))..<src.pixels.len]
+      pixels = src.pixels[((sub.x shr FX_BITS_12) + src.w * (sy shr FX_BITS_12))..<src.pixels.len]
       edx = dx + w
     while dx < edx:
-      buf.pixels[dx] = pixels[sx shr FX_BITS]
+      buf.pixels[dx] = pixels[sx shr FX_BITS_12]
       sx += inx; dx += 1
     sy += iny
 
@@ -377,7 +427,7 @@ proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int) =
   floodFill(buf, c, buf.getPixel(x, y), x, y)
 
 proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
-  let alpha = ((s.rgba.a.uint * m.alpha.uint) shr 8).uint8
+  let alpha = (s.rgba.a.int * m.alpha.int) shr 8
   var s = s
   if alpha <= 1: return
   # Color
@@ -392,46 +442,47 @@ proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
   of BLEND_COLOR:
     s = m.color
   of BLEND_ADD:
-    s.rgba.r = min(d.rgba.r + s.rgba.r, 0xff)
-    s.rgba.g = min(d.rgba.g + s.rgba.g, 0xff)
-    s.rgba.b = min(d.rgba.b + s.rgba.b, 0xff)
+    s.rgba.r = min(d.rgba.r.int + s.rgba.r.int, 0xff).uint8
+    s.rgba.g = min(d.rgba.g.int + s.rgba.g.int, 0xff).uint8
+    s.rgba.b = min(d.rgba.b.int + s.rgba.b.int, 0xff).uint8
   of BLEND_SUBTRACT:
-    s.rgba.r = min(d.rgba.r - s.rgba.r, 0)
-    s.rgba.g = min(d.rgba.g - s.rgba.g, 0)
-    s.rgba.b = min(d.rgba.b - s.rgba.b, 0)
+    s.rgba.r = min(d.rgba.r.int - s.rgba.r.int, 0).uint8
+    s.rgba.g = min(d.rgba.g.int - s.rgba.g.int, 0).uint8
+    s.rgba.b = min(d.rgba.b.int - s.rgba.b.int, 0).uint8
   of BLEND_MULTIPLY:
-    s.rgba.r = (s.rgba.r * d.rgba.r) shr 8
-    s.rgba.g = (s.rgba.g * d.rgba.g) shr 8
-    s.rgba.b = (s.rgba.b * d.rgba.b) shr 8
+    s.rgba.r = ((s.rgba.r.int * d.rgba.r.int) shr 8).uint8
+    s.rgba.g = ((s.rgba.g.int * d.rgba.g.int) shr 8).uint8
+    s.rgba.b = ((s.rgba.b.int * d.rgba.b.int) shr 8).uint8
   of BLEND_LIGHTEN:
-    s = if s.rgba.r + s.rgba.g + s.rgba.b >
-          d.rgba.r + d.rgba.g + d.rgba.b: s else: d[]
+    s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int >
+          d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
   of BLEND_DARKEN:
-    s = if s.rgba.r + s.rgba.g + s.rgba.b <
-          d.rgba.r + d.rgba.g + d.rgba.b: s else: d[]
+    s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int <
+          d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
   of BLEND_SCREEN:
-    s.rgba.r = 0xff'u8 - (((0xff'u8 - d.rgba.r) * (0xff'u8 - s.rgba.r)) shr 8'u8)
-    s.rgba.g = 0xff'u8 - (((0xff'u8 - d.rgba.g) * (0xff'u8 - s.rgba.g)) shr 8'u8)
-    s.rgba.b = 0xff'u8 - (((0xff'u8 - d.rgba.b) * (0xff'u8 - s.rgba.b)) shr 8'u8)
+    s.rgba.r = (0xff - (((0xff - d.rgba.r.int) * (0xff - s.rgba.r.int)) shr 8)).uint8
+    s.rgba.g = (0xff - (((0xff - d.rgba.g.int) * (0xff - s.rgba.g.int)) shr 8)).uint8
+    s.rgba.b = (0xff - (((0xff - d.rgba.b.int) * (0xff - s.rgba.b.int)) shr 8)).uint8
   of BLEND_DIFFERENCE:
-    s.rgba.r = abs(s.rgba.r.int8 - d.rgba.r.int8).uint8
-    s.rgba.g = abs(s.rgba.g.int8 - d.rgba.g.int8).uint8
-    s.rgba.b = abs(s.rgba.b.int8 - d.rgba.b.int8).uint8
+    s.rgba.r = abs(s.rgba.r.int - d.rgba.r.int).uint8
+    s.rgba.g = abs(s.rgba.g.int - d.rgba.g.int).uint8
+    s.rgba.b = abs(s.rgba.b.int - d.rgba.b.int).uint8
   # Write
-  if alpha >= 254'u8:
+  if alpha >= 254:
     d[] = s
   elif d.rgba.a >= 254'u8:
-    d.rgba.r = lerp(8'u8, d.rgba.r, s.rgba.r, alpha)
-    d.rgba.g = lerp(8'u8, d.rgba.g, s.rgba.g, alpha)
-    d.rgba.b = lerp(8'u8, d.rgba.b, s.rgba.b, alpha)
+    d.rgba.r = lerp(8, d.rgba.r.int, s.rgba.r.int, alpha).uint8
+    d.rgba.g = lerp(8, d.rgba.g.int, s.rgba.g.int, alpha).uint8
+    d.rgba.b = lerp(8, d.rgba.b.int, s.rgba.b.int, alpha).uint8
   else:
     let
-      a = 0xff'u8 - (((0xff'u8 - d.rgba.a) * (0xff'u8 - alpha)) shr 8)
-      z = (d.rgba.a * (0xff'u8 - alpha)) shr 8
-    d.rgba.r = div8Table[((d.rgba.r * z) shr 8) + ((s.rgba.r * alpha) shr 8)][a]
-    d.rgba.g = div8Table[((d.rgba.g * z) shr 8) + ((s.rgba.g * alpha) shr 8)][a]
-    d.rgba.b = div8Table[((d.rgba.b * z) shr 8) + ((s.rgba.b * alpha) shr 8)][a]
-    d.rgba.a = a
+      a = 0xff - (((0xff - d.rgba.a.int) * (0xff - alpha)) shr 8)
+      z = (d.rgba.a.int * (0xff - alpha)) shr 8
+    d.rgba.r = div8Table[((d.rgba.r.int * z) shr 8) + ((s.rgba.r.int * alpha) shr 8)][a]
+    d.rgba.g = div8Table[((d.rgba.g.int * z) shr 8) + ((s.rgba.g.int * alpha) shr 8)][a]
+    d.rgba.b = div8Table[((d.rgba.b.int * z) shr 8) + ((s.rgba.b.int * alpha) shr 8)][a]
+    d.rgba.a = a.uint8
+    
 
 proc drawPixel*(buf: Buffer, c: Pixel, x, y: int) =
   if
@@ -552,10 +603,10 @@ proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transfo
   let
     absSx = if t.sx < 0: -t.sx else: t.sx
     absSy = if t.sy < 0: -t.sy else: t.sy
-    osx = if t.sx < 0: (sub.w shl FX_BITS) - 1 else: 0
-    osy = if t.sy < 0: (sub.h shl FX_BITS) - 1 else: 0
-    ix = ((sub.w shl FX_BITS).float / t.sx / sub.w.float).int
-    iy = ((sub.h shl FX_BITS).float / t.sy / sub.h.float).int
+    osx = if t.sx < 0: (sub.w shl FX_BITS_12) - 1 else: 0
+    osy = if t.sy < 0: (sub.h shl FX_BITS_12) - 1 else: 0
+    ix = ((sub.w shl FX_BITS_12).float / t.sx / sub.w.float).int
+    iy = ((sub.h shl FX_BITS_12).float / t.sy / sub.h.float).int
   var
     sub = sub
     w = (sub.w.float * absSx + 0.5).floor.int
@@ -581,8 +632,8 @@ proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transfo
     var sx = osx;
     while dx < w:
       blendPixel(buf.mode, buf.pixels[(x + dx) + (y + dy) * buf.w].addr,
-                 src.pixels[(sub.x + (sx shr FX_BITS)) +
-                             (sub.y + (sy shr FX_BITS)) * src.w])
+                 src.pixels[(sub.x + (sx shr FX_BITS_12)) +
+                             (sub.y + (sy shr FX_BITS_12)) * src.w])
       sx += ix
       dx += 1
     sy += iy
@@ -604,8 +655,8 @@ proc drawScanLine(buf, src: Buffer, sub: Rect, left, right, dy, sx, sy, sxIncr, 
   # should adjust the scan line and the source coordinates accordingly
   block checkSourceLeft:
     while true:
-      x = sx shr FX_BITS
-      y = sy shr FX_BITS
+      x = sx shr FX_BITS_12
+      y = sy shr FX_BITS_12
       if x < sub.x or y < sub.y or x >= sub.x + sub.w or y >= sub.y + sub.h:
         left += 1
         sx += sxIncr
@@ -616,8 +667,8 @@ proc drawScanLine(buf, src: Buffer, sub: Rect, left, right, dy, sx, sy, sxIncr, 
         break checkSourceLeft
   block checkSourceRight:
     while true:
-      x = (sx + sxIncr * (right - left)) shr FX_BITS
-      y = (sy + syIncr * (right - left)) shr FX_BITS
+      x = (sx + sxIncr * (right - left)) shr FX_BITS_12
+      y = (sy + syIncr * (right - left)) shr FX_BITS_12
       if x < sub.x or y < sub.y or x >= sub.x + sub.w or y >= sub.y + sub.h:
         right -= 1
         if left >= right: return
@@ -629,8 +680,8 @@ proc drawScanLine(buf, src: Buffer, sub: Rect, left, right, dy, sx, sy, sxIncr, 
     blendPixel(
       buf.mode, 
       buf.pixels[dx + dy * buf.w].addr, 
-      src.pixels[(sx shr FX_BITS) +
-      (sy shr FX_BITS) * src.w])
+      src.pixels[(sx shr FX_BITS_12) +
+      (sy shr FX_BITS_12) * src.w])
     sx += sxIncr
     sy += syIncr
     dx += 1
@@ -670,21 +721,21 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
   if right.x  < buf.clip.x or left.x >= buf.clip.x + buf.clip.w: return
   # Destination
   var 
-    xl, xr = top.x shl FX_BITS
-    il = xdiv((left.x - top.x) shl FX_BITS, left.y - top.y)
-    ir = xdiv((right.x - top.x) shl FX_BITS, right.y - top.y)
+    xl, xr = top.x shl FX_BITS_12
+    il = xdiv((left.x - top.x) shl FX_BITS_12, left.y - top.y)
+    ir = xdiv((right.x - top.x) shl FX_BITS_12, right.y - top.y)
   # Source
   let
-    sxi  = (xdiv(sub.w shl FX_BITS, w).float * cos(-t.r)).int
-    syi  = (xdiv(sub.h shl FX_BITS, h).float * sin(-t.r)).int
+    sxi  = (xdiv(sub.w shl FX_BITS_12, w).float * cos(-t.r)).int
+    syi  = (xdiv(sub.h shl FX_BITS_12, h).float * sin(-t.r)).int
   var
-    sxoi = (xdiv(sub.w shl FX_BITS, left.y - top.y).float * sinq).int
-    syoi = (xdiv(sub.h shl FX_BITS, left.y - top.y).float * cosq).int
+    sxoi = (xdiv(sub.w shl FX_BITS_12, left.y - top.y).float * sinq).int
+    syoi = (xdiv(sub.h shl FX_BITS_12, left.y - top.y).float * cosq).int
     (sx, sy) = case q
-    of 1: (sub.x shl FX_BITS,                 ((sub.y + sub.h) shl FX_BITS) - 1)
-    of 2: (((sub.x + sub.w) shl FX_BITS) - 1, ((sub.y + sub.h) shl FX_BITS) - 1)
-    of 3: (((sub.x + sub.w) shl FX_BITS) - 1, sub.y shl FX_BITS)
-    else: (sub.x shl FX_BITS,                 sub.y shl FX_BITS)
+    of 1: (sub.x shl FX_BITS_12,                 ((sub.y + sub.h) shl FX_BITS_12) - 1)
+    of 2: (((sub.x + sub.w) shl FX_BITS_12) - 1, ((sub.y + sub.h) shl FX_BITS_12) - 1)
+    of 3: (((sub.x + sub.w) shl FX_BITS_12) - 1, sub.y shl FX_BITS_12)
+    else: (sub.x shl FX_BITS_12,                 sub.y shl FX_BITS_12)
     # Draw
     dy = if left.y == top.y or right.y == top.y:
         # Adjust for right-angled rotation
@@ -694,16 +745,16 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
   while dy <= bottom.y:
     # Invert source iterators & increments if we are scaled negatively
     let (tsx, tsxi) = if invX:
-        (((sub.x * 2 + sub.w) shl FX_BITS) - sx - 1, -sxi)
+        (((sub.x * 2 + sub.w) shl FX_BITS_12) - sx - 1, -sxi)
       else:
         (sx, sxi)
 
     let (tsy, tsyi) = if invY:
-        (((sub.y * 2 + sub.h) shl FX_BITS) - sy - 1, -syi)
+        (((sub.y * 2 + sub.h) shl FX_BITS_12) - sy - 1, -syi)
       else:
         (sy, syi)
     # Draw row
-    drawScanline(buf, src, sub, xl shr FX_BITS, xr shr FX_BITS, dy,
+    drawScanline(buf, src, sub, xl shr FX_BITS_12, xr shr FX_BITS_12, dy,
       tsx, tsy, tsxi, tsyi);
     sx += sxoi
     sy += syoi
@@ -712,11 +763,11 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
     dy += 1
     # Modify increments if we've reached the left or right corner */
     if dy == left.y:
-      il = xdiv((bottom.x - left.x) shl FX_BITS, bottom.y - left.y)
-      sxoi = (xdiv(sub.w shl FX_BITS, bottom.y - left.y).float *  cosq).int
-      syoi = (xdiv(sub.h shl FX_BITS, bottom.y - left.y).float * -sinq).int
+      il = xdiv((bottom.x - left.x) shl FX_BITS_12, bottom.y - left.y)
+      sxoi = (xdiv(sub.w shl FX_BITS_12, bottom.y - left.y).float *  cosq).int
+      syoi = (xdiv(sub.h shl FX_BITS_12, bottom.y - left.y).float * -sinq).int
     if dy == right.y:
-      ir = xdiv((bottom.x - right.x) shl FX_BITS, bottom.y - right.y)
+      ir = xdiv((bottom.x - right.x) shl FX_BITS_12, bottom.y - right.y)
 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
   var (x, y, t) = (x, y, t)
@@ -743,3 +794,141 @@ proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, t: Transform) =
 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int) =
   drawBufferBasic(buf, src, x, y, (0, 0, src.w, src.h))
+
+proc desaturate*(buf: Buffer, amount: int) =
+  let amount = clamp(amount, 0, 0xff)
+  if amount >= 0xfe:
+    # full amount? don't bother with pixel lerping, just write pixel avg
+    for p in buf.pixels.mitems:
+      let avg = ((p.rgba.r.int + p.rgba.g.int + p.rgba.b.int) * 341) shr 10
+      p.rgba.r = avg.uint8
+      p.rgba.g = avg.uint8
+      p.rgba.b = avg.uint8
+  else:
+    for p in buf.pixels.mitems:
+      let avg = ((p.rgba.r.int + p.rgba.g.int + p.rgba.b.int) * 341) shr 10
+      p.rgba.r = lerp(8, p.rgba.r.int, avg, amount).uint8
+      p.rgba.g = lerp(8, p.rgba.g.int, avg, amount).uint8
+      p.rgba.b = lerp(8, p.rgba.b.int, avg, amount).uint8
+
+
+proc mask*(buf, mask: Buffer, channel: char) =
+  checkBufferSizesMatch(buf, mask, "mask")
+  let channel = ($channel.toLowerAscii)[0]
+  for i in 0..<(buf.w * buf.h):
+    case channel
+    of 'r':
+      buf.pixels[i].rgba.r = ((buf.pixels[i].rgba.r.int * mask.pixels[i].rgba.r.int) shr 8).uint8
+    of 'g':
+      buf.pixels[i].rgba.g = ((buf.pixels[i].rgba.g.int * mask.pixels[i].rgba.g.int) shr 8).uint8
+    of 'b':
+      buf.pixels[i].rgba.b = ((buf.pixels[i].rgba.b.int * mask.pixels[i].rgba.b.int) shr 8).uint8
+    of 'a':
+      buf.pixels[i].rgba.a = ((buf.pixels[i].rgba.a.int * mask.pixels[i].rgba.a.int) shr 8).uint8
+    else:
+      check(false, "mask", "expected channel to be 'r', 'g', 'b' or 'a'")
+
+proc palette*(buf: Buffer, palette: openarray[Pixel]) =
+  var pal: array[256, Pixel]
+  let ncolors = palette.len()
+  check(ncolors != 0, "palette", "expected non-empty table")
+  # load palette from table
+  for i in 0..<256:
+    pal[i] = palette[((i * ncolors) shr 8)]
+  # convert each pixel to palette color based on its brightest channel
+  for p in buf.pixels.mitems:
+    let idx = max(max(p.rgba.r, p.rgba.b), p.rgba.g)
+    p.rgba.r = pal[idx].rgba.r
+    p.rgba.g = pal[idx].rgba.g
+    p.rgba.b = pal[idx].rgba.b
+
+proc xorshift64star(x: ptr uint64): uint64 =
+  x[] = x[] xor (x[] shr 12)
+  x[] = x[] xor (x[] shl 25)
+  x[] = x[] xor (x[] shr 27)
+  return x[] * 2685821657736338717'u64
+
+# doesn't work
+proc dissolve*(buf: Buffer, amount: int, seed: uint) =
+  let amount = amount.clamp(0, 0xff).uint8
+  var seed: uint64 = (1'u64 shl 32) or seed
+  for p in buf.pixels.mitems:
+    if (xorshift64star(seed.addr) and 0xff) < amount:
+      p.rgba.a = 0
+      # p.word = 0
+
+proc wave*(buf, src: Buffer, amountX, amountY, scaleX, scaleY: int, offsetX, offsetY: int = 0) =
+  checkBufferSizesMatch(buf, src, "wave")
+  let
+    scaleX = scaleX * FX_UNIT_10
+    scaleY = scaleY * FX_UNIT_10
+    offsetX = offsetX * FX_UNIT_10
+    offsetY = offsetY * FX_UNIT_10
+  for y in 0..<buf.h:
+    let ox = (fxsin(offsetX + ((y * scaleX) shr FX_BITS_10)) * amountX) shr FX_BITS_10
+    for x in 0..<buf.w:
+      let oy = (fxsin(offsetY + ((x * scaleY) shr FX_BITS_10)) * amountY) shr FX_BITS_10
+      buf.pixels[y * buf.w + x] = src.getPixel(x + ox, y + oy)
+
+proc getChannel(fname: string, px: Pixel, channel: char): uint8 =
+  case channel
+  of 'r': return px.rgba.r
+  of 'g': return px.rgba.g
+  of 'b': return px.rgba.b
+  of 'a': return px.rgba.a
+  else: check(false, fname, "bad channel")
+
+proc displace*(buf, src, map: Buffer, channelX, channelY: char, scaleX, scaleY: int) =
+  let (scaleX, scaleY) = (scaleX * (1 shl 7), scaleY * (1 shl 7))
+  checkBufferSizesMatch(buf, src, "displace")
+  checkBufferSizesMatch(buf, map, "displace")
+  for y in 0..<buf.h:
+    var m = map.pixels[y * buf.w..<map.pixels.len]
+    for x in 0..<buf.w:
+      let
+        cx = ((getChannel("displace", m[x], channelX) - (1 shl 7)).int * scaleX) shr 14
+        cy = ((getChannel("displace", m[x], channelY) - (1 shl 7)).int * scaleY) shr 14
+      buf.pixels[y * buf.w + x] = src.getPixel(x + cx, y + cy)
+
+
+template GET_PIXEL_FAST(buf, x, y: untyped): untyped = buf.pixels[x + y * w]
+template BLUR_PIXEL(r, g, b, GET_PIXEL: untyped) =
+  # r, g, b = 0
+  for ky in -radiusy..radiusy:
+    var r2, g2, b2 = 0'u8
+    for kx in -radiusx..radiusx:
+      p2 = GET_PIXEL(src, x + kx, y + ky)
+      r2 += p2.rgba.r
+      g2 += p2.rgba.g
+      b2 += p2.rgba.b
+    r += ((r2.float * dx).int shr 8).uint8
+    g += ((g2.float * dx).int shr 8).uint8
+    b += ((b2.float * dx).int shr 8).uint8
+
+proc blur*(buf, src: Buffer, radiusx, radiusy: int) =
+  let
+    w = src.w
+    h = src.h
+    dx = 256 / (radiusx * 2 + 1)
+    dy = 256 / (radiusy * 2 + 1)
+    bounds: Rect = (radiusx, radiusy, w - radiusx, h - radiusy)
+  checkBufferSizesMatch(buf, src, "blur")
+  var
+    p2: Pixel
+    r, g, b = 0'u8
+  # do blur
+  for y in 0..<h:
+    let inBoundsY = y >= bounds.y and y < bounds.h
+    for x in 0..<w:
+      # are the pixels that will be used in bounds?
+      let inBounds = inBoundsY and x >= bounds.x and x < bounds.w
+      # blur pixel
+      if inBounds:
+        BLUR_PIXEL(r, g, b, GET_PIXEL_FAST)
+      else:
+        BLUR_PIXEL(r, g, b, getPixel)
+      # set pixel
+      buf.pixels[x + y * buf.h].rgba.r = ((r.float * dy).int shr 8).uint8
+      buf.pixels[x + y * buf.h].rgba.g = ((g.float * dy).int shr 8).uint8
+      buf.pixels[x + y * buf.h].rgba.b = ((b.float * dy).int shr 8).uint8
+      buf.pixels[x + y * buf.h].rgba.a = 0xff

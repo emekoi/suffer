@@ -1,7 +1,8 @@
 import 
   sdl2/sdl,
   ../src/suffer,
-  random, math
+  random, math,
+  palette, tables, strutils
   
 from timer import nil
 
@@ -9,16 +10,27 @@ from timer import nil
 # TESTS #
 #########
 
+const
+  Title = "drawing-test | "
+  ScreenW = 512
+  ScreenH = 512
+
 var 
   testBuffer = newBuffer(128, 128)
   ticks = 0.0
   rot = 0.0
+  current_palette = 0
+  palette_active = false
 
 proc random_pixel(): Pixel =
-  result.rgba.r = random(255).uint8 + 1'u8
-  result.rgba.g = random(255).uint8 + 1'u8
-  result.rgba.b = random(255).uint8 + 1'u8
-  result.rgba.a = random(255).uint8 + 1'u8
+  if palette_active:
+    result = Palettes[PaletteNames[current_palette]][random(4) + 1]
+  else:
+    result.rgba.r = random(255).uint8 + 1'u8
+    result.rgba.g = random(255).uint8 + 1'u8
+    result.rgba.b = random(255).uint8 + 1'u8
+    result.rgba.a = random(255).uint8 + 1'u8
+  
 
 proc random_color(): Pixel =
   result = random_pixel()
@@ -32,7 +44,11 @@ proc draw_noise(buf: Buffer): bool =
 
 proc draw_flood_fill(buf: Buffer): bool =
   discard testBuffer
-  buf.floodFill(random_pixel(), 0, 0)
+  let color = buf.getPixel(0, 0)
+  var c = random_pixel()
+  while c.word == color.word:
+    c = random_pixel()
+  buf.floodFill(c, 0, 0)
 
 proc draw_pixel(buf: Buffer): bool =
   testBuffer.drawPixel(random_color(), random(128), random(128))
@@ -72,7 +88,6 @@ proc draw_buffer_basic(buf: Buffer): bool =
   testBuffer.drawCircle(random_color(), d, d, 16)
   testBuffer.drawRing(random_color(), d, d, 96)
   testBuffer.drawPixel(random_color(), 128, 128)
-  buf.drawBuffer(testBuffer, 0, 0)
 
 
 proc draw_buffer_scaled(buf: Buffer): bool =
@@ -103,9 +118,6 @@ proc draw_buffer_rotate_scaled(buf: Buffer): bool =
     2.0 * ticks.sin().abs() + 0.4))
 
 const
-  Title = "drawing-test | "
-  ScreenW = 512
-  ScreenH = 512
   Tests = [
     draw_noise,
     draw_flood_fill,
@@ -117,7 +129,7 @@ const
     draw_ring,
     draw_buffer_basic,
     draw_buffer_scaled,
-    draw_buffer_rotate_scaled
+    draw_buffer_rotate_scaled,
   ]
   max_fps = 60.0
   total_tests = Tests.len()
@@ -156,6 +168,8 @@ proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
     if screen.lockSurface() != 0:
       quit "ERROR: couldn't lock screen: " & $sdl.getError()
   result = cb(app.canvas)
+  app.canvas.dissolve(100, random(high(int) - 1).uint)
+  if palette_active: app.canvas.palette(Palettes[PaletteNames[current_palette]])
   copyMem(screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
   if screen != nil and screen.mustLock(): screen.unlockSurface()
   if app.window.updateWindowSurface() != 0:
@@ -169,13 +183,15 @@ proc update(app: App) =
     clear = true
     
   while true:
-    app.window.setWindowTitle(Title & $timer.getFps() & " fps")
+    if palette_active:
+      app.window.setWindowTitle(Title & $timer.getFps() & " fps | " & PaletteNames[current_palette])
+    else:
+      app.window.setWindowTitle(Title & $timer.getFps() & " fps")
     while sdl.pollEvent(addr(e)) != 0:
       case e.kind
       of sdl.Quit:
         return
       of KeyDown:
-        sdl.logInfo(sdl.LogCategoryApplication, "Pressed %s", $e.key.keysym.sym)
         case e.key.keysym.sym
         of sdl.K_Escape: return
         of sdl.K_LEFT:
@@ -190,6 +206,18 @@ proc update(app: App) =
           current_test = (current_test + 1) mod total_tests
           testBuffer.clear(color(0, 0, 0))
           clear = false
+        of sdl.K_UP:
+          if palette_active:
+            current_palette = (current_palette + 1) mod PaletteCount
+        of sdl.K_DOWN:
+          if palette_active:
+            current_palette = 
+              if current_palette == 0:
+                PaletteCount - 1
+              else:
+                current_palette - 1
+        of sdl.K_p:
+          palette_active = not palette_active
         else: discard
       else: discard
     
