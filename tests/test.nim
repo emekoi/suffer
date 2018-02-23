@@ -88,6 +88,7 @@ proc draw_buffer_basic(buf: Buffer): bool =
   testBuffer.drawCircle(random_color(), d, d, 16)
   testBuffer.drawRing(random_color(), d, d, 96)
   testBuffer.drawPixel(random_color(), 128, 128)
+  buf.drawBuffer(testBuffer, 0, 0)
 
 
 proc draw_buffer_scaled(buf: Buffer): bool =
@@ -168,7 +169,6 @@ proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
     if screen.lockSurface() != 0:
       quit "ERROR: couldn't lock screen: " & $sdl.getError()
   result = cb(app.canvas)
-  app.canvas.dissolve(100, random(high(int) - 1).uint)
   if palette_active: app.canvas.palette(Palettes[PaletteNames[current_palette]])
   copyMem(screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
   if screen != nil and screen.mustLock(): screen.unlockSurface()

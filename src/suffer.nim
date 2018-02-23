@@ -142,7 +142,7 @@ proc palette*(buf: Buffer, palette: openarray[Pixel])
   ## converts the buffer to the given palette
 proc dissolve*(buf: Buffer, amount: int, seed: uint)
   ## randomly dissolves the palette by the given amount
-proc wave*(buf, src: Buffer, amountX, amountY, scaleX, scaleY: int, offsetX, offsetY: int = 0)
+proc wave*(buf, src: Buffer, amountX, amountY, scaleX, scaleY, offsetX, offsetY: int)
   ## distorts `src` in a wave-like pattern as it is drawn onto `buf`
 proc displace*(buf, src, map: Buffer, channelX, channelY: char, scaleX, scaleY: int)
   ## uses `map` to displace `src`, then draws `src` onto `buf`
@@ -198,7 +198,7 @@ proc fxsin(n: int): int =
   return tableSin[n and FX_MASK_10]
 
 proc checkBufferSizesMatch(a, b: Buffer, fname: string) =
-  check(a.w != b.w or a.h != b.h, fname, "expected buffer sizes to match") 
+  check(a.w == b.w or a.h == b.h, fname, "expected buffer sizes to match") 
     
 
 proc rand128init(seed: uint): RandState =
@@ -857,7 +857,7 @@ proc dissolve*(buf: Buffer, amount: int, seed: uint) =
       p.rgba.a = 0
       # p.word = 0
 
-proc wave*(buf, src: Buffer, amountX, amountY, scaleX, scaleY: int, offsetX, offsetY: int = 0) =
+proc wave*(buf, src: Buffer, amountX, amountY, scaleX, scaleY, offsetX, offsetY: int) =
   checkBufferSizesMatch(buf, src, "wave")
   let
     scaleX = scaleX * FX_UNIT_10
