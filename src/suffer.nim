@@ -104,8 +104,9 @@ proc newBuffer*(w, h: int): Buffer
   ## creates a blank pixel buffer
 proc newBufferFile*(filename: string): Buffer
   ## creates a new pixel buffer from a file
-proc newBufferString*(data: string): Buffer
+proc newBufferString*(str: string): Buffer
   ## creates a new pixel buffer from a string
+  ## (it doesn't actually work for some reason and i have no idea why)
 proc cloneBuffer*(src: Buffer): Buffer
   ## creates a copy of the buffer
 proc loadPixels*(buf: Buffer, src: openarray[uint32], fmt: PixelFormat)
@@ -276,9 +277,7 @@ proc color*[T](r, g, b: T): Pixel =
 #   result.word = word
 
 converter toBytes(str: string): seq[byte] =
-  result = @[]
-  for c in str:
-    result.add c.byte
+  return cast[seq[byte]](str)
 
 # converter toBool[T](cmp: T): bool = cmp != 0
 
@@ -322,7 +321,7 @@ const
 proc stbi_failure_reason_c(): cstring
   {.cdecl, importc: "stbi_failure_reason".}
 
-proc stbi_failure_reason*(): string =
+proc stbi_failure_reason(): string =
   return $stbi_failure_reason_c()
 
 {.push cdecl, importc.}
@@ -351,10 +350,9 @@ proc newBufferFile*(filename: string): Buffer =
   stbi_image_free(data)
 
 
-proc newBufferString*(data: string): Buffer =
-  # return loadBufferFromMemory(data)
+proc newBufferString*(str: string): Buffer =
   var width, height, bpp: cint
-  var data = cast[ptr cuchar](data[0].unsafeAddr)
+  var data = cast[ptr cuchar](str[0].unsafeAddr)
   let pixelData = stbi_load_from_memory(data, data.len.cint,
     width, height, bpp, 4)
   check(pixelData != nil, stbi_failure_reason())
@@ -1090,7 +1088,7 @@ proc render*(font: Font, txt: string): Buffer =
     raise newException(FontError, "could not render text")
   # Load bitmap and free intermediate 8bit bitmap
   var pixels = newSeq[byte](w * h)
-  copyMem(pixels[0].addr, bitmap, w * h)
+  copyMem(pixels[0].addr, bitmap, w * h * sizeof(byte))
   result = newBuffer(w, h)
   result.loadPixels8(pixels)
   

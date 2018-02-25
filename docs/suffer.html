@@ -1293,21 +1293,14 @@ function main() {
     title="color[T](r, g, b: T): Pixel"><wbr />color<span class="attachedType" style="visibility:hidden">Pixel</span></a></li>
   <li><a class="reference" href="#newBuffer,int,int"
     title="newBuffer(w, h: int): Buffer"><wbr />new<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
-  <li><a class="reference" href="#stbi_failure_reason,"
-    title="stbi_failure_reason(): string"><wbr />stbi_<wbr />failure_<wbr />reason<span class="attachedType" style="visibility:hidden"></span></a></li>
-  <li><a class="reference" href="#stbi_image_free,pointer"
-    title="stbi_image_free(retval_from_stbi_load: pointer)"><wbr />stbi_<wbr />image_<wbr />free<span class="attachedType" style="visibility:hidden"></span></a></li>
-  <li><a class="reference" href="#stbi_load_from_memory,ptr.cuchar,cint,cint,cint,cint,cint"
-    title="stbi_load_from_memory(buffer: ptr cuchar; len: cint;
-                      x, y, channels_in_file: var cint; desired_channels: cint): ptr cuchar"><wbr />stbi_<wbr />load_<wbr />from_<wbr />memory<span class="attachedType" style="visibility:hidden"></span></a></li>
   <li><a class="reference" href="#newBufferFile,string"
     title="newBufferFile(filename: string): Buffer"><wbr />new<wbr />Buffer<wbr />File<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#newBufferString,string"
-    title="newBufferString(data: string): Buffer"><wbr />new<wbr />Buffer<wbr />String<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+    title="newBufferString(str: string): Buffer"><wbr />new<wbr />Buffer<wbr />String<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#cloneBuffer,Buffer"
     title="cloneBuffer(src: Buffer): Buffer"><wbr />clone<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
-  <li><a class="reference" href="#loadPixels,Buffer,openArray[SomeUnsignedInt],PixelFormat"
-    title="loadPixels(buf: Buffer; src: openArray[SomeUnsignedInt]; fmt: PixelFormat)"><wbr />load<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#loadPixels,Buffer,openArray[uint32],PixelFormat"
+    title="loadPixels(buf: Buffer; src: openArray[uint32]; fmt: PixelFormat)"><wbr />load<wbr />Pixels<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#loadPixels8,Buffer,openArray[uint8],openArray[Pixel]"
     title="loadPixels8(buf: Buffer; src: openArray[uint8]; pal: openArray[Pixel])"><wbr />load<wbr />Pixels8<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#loadPixels8,Buffer,openArray[uint8]"
@@ -1540,32 +1533,16 @@ an alias for <cite>pixel(r, g, b, 255)</cite>
 creates a blank pixel buffer
 
 </dd>
-<dt id="stbi_failure_reason"><a name="stbi_failure_reason,"></a><pre><span class="Keyword">proc</span> <span class="Identifier">stbi_failure_reason</span><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
-<dd>
-
-
-</dd>
-<dt id="stbi_image_free"><a name="stbi_image_free,pointer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">stbi_image_free</span><span class="Other">(</span><span class="Identifier">retval_from_stbi_load</span><span class="Other">:</span> <span class="Identifier">pointer</span><span class="Other">)</span></pre></dt>
-<dd>
-
-
-</dd>
-<dt id="stbi_load_from_memory"><a name="stbi_load_from_memory,ptr.cuchar,cint,cint,cint,cint,cint"></a><pre><span class="Keyword">proc</span> <span class="Identifier">stbi_load_from_memory</span><span class="Other">(</span><span class="Identifier">buffer</span><span class="Other">:</span> <span class="Keyword">ptr</span> <span class="Identifier">cuchar</span><span class="Other">;</span> <span class="Identifier">len</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">;</span>
-                          <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">channels_in_file</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">cint</span><span class="Other">;</span> <span class="Identifier">desired_channels</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">ptr</span> <span class="Identifier">cuchar</span></pre></dt>
-<dd>
-
-
-</dd>
-<dt id="newBufferFile"><a name="newBufferFile,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBufferFile</span><span class="Other">(</span><span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dt id="newBufferFile"><a name="newBufferFile,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBufferFile</span><span class="Other">(</span><span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">BufferError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 creates a new pixel buffer from a file
 
 </dd>
-<dt id="newBufferString"><a name="newBufferString,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBufferString</span><span class="Other">(</span><span class="Identifier">data</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">BufferError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dt id="newBufferString"><a name="newBufferString,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBufferString</span><span class="Other">(</span><span class="Identifier">str</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">BufferError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+                                        <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
-creates a new pixel buffer from a string
+creates a new pixel buffer from a string (it doesn't actually work for some reason and i have no idea why)
 
 </dd>
 <dt id="cloneBuffer"><a name="cloneBuffer,Buffer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">cloneBuffer</span><span class="Other">(</span><span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
@@ -1573,7 +1550,8 @@ creates a new pixel buffer from a string
 creates a copy of the buffer
 
 </dd>
-<dt id="loadPixels"><a name="loadPixels,Buffer,openArray[SomeUnsignedInt],PixelFormat"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">SomeUnsignedInt</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">fmt</span><span class="Other">:</span> <span class="Identifier">PixelFormat</span><span class="Other">)</span></pre></dt>
+<dt id="loadPixels"><a name="loadPixels,Buffer,openArray[uint32],PixelFormat"></a><pre><span class="Keyword">proc</span> <span class="Identifier">loadPixels</span><span class="Other">(</span><span class="Identifier">buf</span><span class="Other">:</span> <span class="Identifier">Buffer</span><span class="Other">;</span> <span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">uint32</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">fmt</span><span class="Other">:</span> <span class="Identifier">PixelFormat</span><span class="Other">)</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 loads the data from <cite>src</cite> into the buffer using the given pixel format
 
@@ -1795,7 +1773,7 @@ creates a new Buffer with <cite>txt</cite> rendered on it using <cite>font</cite
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-02-24 20:29:07 UTC</small>
+        <small>Made with Nim. Generated: 2018-02-25 17:57:59 UTC</small>
       </div>
     </div>
   </div>

@@ -22,7 +22,7 @@ const
   ScreenH = 512
 
 var 
-  DEFAULT_FONT =  newFontFile("font.ttf", 64)
+  DEFAULT_FONT =  newFontFile("font.ttf", 16)
   TEST_IMAGE = newBufferFile("cat.png")
   testBuffer = newBuffer(128, 128)
   ticks = 0.0
@@ -103,8 +103,8 @@ proc draw_buffer_rotate_scaled(buf: Buffer): bool =
   ticks += 0.02; rot = (rot + 1.0);
   buf.drawBuffer(TEST_IMAGE, 255, 255,
     (TEST_IMAGE.w.float / 2.0, TEST_IMAGE.h.float / 2.0, rot.degToRad(),
-    2.0 * ticks.sin().abs() + 0.4,
-    2.0 * ticks.sin().abs() + 0.4))
+    1.0 * ticks.sin().abs() + 0.4,
+    1.0 * ticks.sin().abs() + 0.4))
 
 const
   Tests = [
@@ -152,7 +152,7 @@ proc exit(app: App) =
   sdl.logInfo sdl.LogCategoryApplication, "SDL shutdown completed"
 
 
-let txt = DEFAULT_FONT.render("HELLO WORLD")
+var txt = DEFAULT_FONT.render("HELLO WORLD")
 
 proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
   let screen = app.window.getWindowSurface
@@ -161,7 +161,9 @@ proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
       quit "ERROR: couldn't lock screen: " & $sdl.getError()
   result = cb(app.canvas)
   if palette_active: app.canvas.palette(Palettes[PaletteNames[current_palette]])
-  # app.canvas.drawBuffer(txt, 0, 0)
+  app.canvas.setColor(color(0, 0, 0))
+  app.canvas.drawBuffer(txt, 2, 0)
+  app.canvas.reset()
   copyMem(screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
   if screen != nil and screen.mustLock(): screen.unlockSurface()
   if app.window.updateWindowSurface() != 0:
