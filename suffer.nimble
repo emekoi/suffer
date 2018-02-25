@@ -11,7 +11,6 @@ skipDirs      = @["docs", "private"]
 
 requires "nim >= 0.17.2"
 
-
 # Build Tasks
 
 task docs, "generate documentation and place it in the docs folder":

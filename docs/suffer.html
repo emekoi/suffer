@@ -1265,6 +1265,22 @@ function main() {
   </ul>
 </li>
 <li>
+  <a class="reference reference-toplevel" href="#10" id="60">Consts</a>
+  <ul class="simple simple-toc-section">
+      <li><a class="reference" href="#STBI_default"
+    title="STBI_default = 0"><wbr />STBI_<wbr />default<span class="attachedType" style="visibility:hidden"></span></a></li>
+  <li><a class="reference" href="#STBI_grey"
+    title="STBI_grey = 1"><wbr />STBI_<wbr />grey<span class="attachedType" style="visibility:hidden"></span></a></li>
+  <li><a class="reference" href="#STBI_grey_alpha"
+    title="STBI_grey_alpha = 2"><wbr />STBI_<wbr />grey_<wbr />alpha<span class="attachedType" style="visibility:hidden"></span></a></li>
+  <li><a class="reference" href="#STBI_rgb"
+    title="STBI_rgb = 3"><wbr />STBI_<wbr />rgb<span class="attachedType" style="visibility:hidden"></span></a></li>
+  <li><a class="reference" href="#STBI_rgb_alpha"
+    title="STBI_rgb_alpha = 4"><wbr />STBI_<wbr />rgb_<wbr />alpha<span class="attachedType" style="visibility:hidden"></span></a></li>
+
+  </ul>
+</li>
+<li>
   <a class="reference reference-toplevel" href="#12" id="62">Procs</a>
   <ul class="simple simple-toc-section">
       <li><a class="reference" href="#$,Pixel"
@@ -1277,6 +1293,13 @@ function main() {
     title="color[T](r, g, b: T): Pixel"><wbr />color<span class="attachedType" style="visibility:hidden">Pixel</span></a></li>
   <li><a class="reference" href="#newBuffer,int,int"
     title="newBuffer(w, h: int): Buffer"><wbr />new<wbr />Buffer<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
+  <li><a class="reference" href="#stbi_failure_reason,"
+    title="stbi_failure_reason(): string"><wbr />stbi_<wbr />failure_<wbr />reason<span class="attachedType" style="visibility:hidden"></span></a></li>
+  <li><a class="reference" href="#stbi_image_free,pointer"
+    title="stbi_image_free(retval_from_stbi_load: pointer)"><wbr />stbi_<wbr />image_<wbr />free<span class="attachedType" style="visibility:hidden"></span></a></li>
+  <li><a class="reference" href="#stbi_load_from_memory,ptr.cuchar,cint,cint,cint,cint,cint"
+    title="stbi_load_from_memory(buffer: ptr cuchar; len: cint;
+                      x, y, channels_in_file: var cint; desired_channels: cint): ptr cuchar"><wbr />stbi_<wbr />load_<wbr />from_<wbr />memory<span class="attachedType" style="visibility:hidden"></span></a></li>
   <li><a class="reference" href="#newBufferFile,string"
     title="newBufferFile(filename: string): Buffer"><wbr />new<wbr />Buffer<wbr />File<span class="attachedType" style="visibility:hidden">Buffer</span></a></li>
   <li><a class="reference" href="#newBufferString,string"
@@ -1376,7 +1399,7 @@ function main() {
   <div class="section" id="6">
 <h1><a class="toc-backref" href="#6">Imports</a></h1>
 <dl class="item">
-<a class="reference external" href="strutils.html">strutils</a>, <a class="reference external" href="sequtils.html">sequtils</a>, <a class="reference external" href="math.html">math</a>, <a class="reference external" href="private/stb.html">private/stb</a>
+<a class="reference external" href="strutils.html">strutils</a>, <a class="reference external" href="sequtils.html">sequtils</a>, <a class="reference external" href="math.html">math</a>
 </dl></div>
 <div class="section" id="7">
 <h1><a class="toc-backref" href="#7">Types</a></h1>
@@ -1459,6 +1482,36 @@ a reference to the actual font
 </dd>
 
 </dl></div>
+<div class="section" id="10">
+<h1><a class="toc-backref" href="#10">Consts</a></h1>
+<dl class="item">
+<dt id="STBI_default"><a name="STBI_default"></a><pre><span class="Identifier">STBI_default</span> <span class="Other">=</span> <span class="DecNumber">0</span></pre></dt>
+<dd>
+
+
+</dd>
+<dt id="STBI_grey"><a name="STBI_grey"></a><pre><span class="Identifier">STBI_grey</span> <span class="Other">=</span> <span class="DecNumber">1</span></pre></dt>
+<dd>
+
+
+</dd>
+<dt id="STBI_grey_alpha"><a name="STBI_grey_alpha"></a><pre><span class="Identifier">STBI_grey_alpha</span> <span class="Other">=</span> <span class="DecNumber">2</span></pre></dt>
+<dd>
+
+
+</dd>
+<dt id="STBI_rgb"><a name="STBI_rgb"></a><pre><span class="Identifier">STBI_rgb</span> <span class="Other">=</span> <span class="DecNumber">3</span></pre></dt>
+<dd>
+
+
+</dd>
+<dt id="STBI_rgb_alpha"><a name="STBI_rgb_alpha"></a><pre><span class="Identifier">STBI_rgb_alpha</span> <span class="Other">=</span> <span class="DecNumber">4</span></pre></dt>
+<dd>
+
+
+</dd>
+
+</dl></div>
 <div class="section" id="12">
 <h1><a class="toc-backref" href="#12">Procs</a></h1>
 <dl class="item">
@@ -1485,6 +1538,22 @@ an alias for <cite>pixel(r, g, b, 255)</cite>
 <dt id="newBuffer"><a name="newBuffer,int,int"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBuffer</span><span class="Other">(</span><span class="Identifier">w</span><span class="Other">,</span> <span class="Identifier">h</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">BufferError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
 <dd>
 creates a blank pixel buffer
+
+</dd>
+<dt id="stbi_failure_reason"><a name="stbi_failure_reason,"></a><pre><span class="Keyword">proc</span> <span class="Identifier">stbi_failure_reason</span><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></div><span class="Other pragmaend">.}</span></pre></dt>
+<dd>
+
+
+</dd>
+<dt id="stbi_image_free"><a name="stbi_image_free,pointer"></a><pre><span class="Keyword">proc</span> <span class="Identifier">stbi_image_free</span><span class="Other">(</span><span class="Identifier">retval_from_stbi_load</span><span class="Other">:</span> <span class="Identifier">pointer</span><span class="Other">)</span></pre></dt>
+<dd>
+
+
+</dd>
+<dt id="stbi_load_from_memory"><a name="stbi_load_from_memory,ptr.cuchar,cint,cint,cint,cint,cint"></a><pre><span class="Keyword">proc</span> <span class="Identifier">stbi_load_from_memory</span><span class="Other">(</span><span class="Identifier">buffer</span><span class="Other">:</span> <span class="Keyword">ptr</span> <span class="Identifier">cuchar</span><span class="Other">;</span> <span class="Identifier">len</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">;</span>
+                          <span class="Identifier">x</span><span class="Other">,</span> <span class="Identifier">y</span><span class="Other">,</span> <span class="Identifier">channels_in_file</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">cint</span><span class="Other">;</span> <span class="Identifier">desired_channels</span><span class="Other">:</span> <span class="Identifier">cint</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">ptr</span> <span class="Identifier">cuchar</span></pre></dt>
+<dd>
+
 
 </dd>
 <dt id="newBufferFile"><a name="newBufferFile,string"></a><pre><span class="Keyword">proc</span> <span class="Identifier">newBufferFile</span><span class="Other">(</span><span class="Identifier">filename</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Buffer</span> <span class="Other pragmabegin">{.</span><div class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
@@ -1726,7 +1795,7 @@ creates a new Buffer with <cite>txt</cite> rendered on it using <cite>font</cite
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small>Made with Nim. Generated: 2018-02-24 20:16:10 UTC</small>
+        <small>Made with Nim. Generated: 2018-02-24 20:29:07 UTC</small>
       </div>
     </div>
   </div>

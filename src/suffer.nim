@@ -4,7 +4,9 @@
 #  under the terms of the MIT license. See LICENSE for details.
 #
 
-{.deadCodeElim: on, compile: "private/ttf_impl.c".}
+{.deadCodeElim: on.}
+{.compile: "private/ttf_impl.c".}
+{.compile: "private/stb_impl.c".}
 
 when defined(Posix) and not defined(haiku):
   {.passl: "-lm".}
@@ -12,8 +14,7 @@ when defined(Posix) and not defined(haiku):
 import
   strutils,
   sequtils,
-  math,
-  private/stb
+  math
 
 when defined(MODE_RGBA):
   const RGB_MASK = 0x00FFFFFF'u32
@@ -107,7 +108,7 @@ proc newBufferString*(data: string): Buffer
   ## creates a new pixel buffer from a string
 proc cloneBuffer*(src: Buffer): Buffer
   ## creates a copy of the buffer
-proc loadPixels*(buf: Buffer, src: openarray[SomeUnsignedInt], fmt: PixelFormat)
+proc loadPixels*(buf: Buffer, src: openarray[uint32], fmt: PixelFormat)
   ## loads the data from `src` into the buffer using the given pixel format
 proc loadPixels8*(buf: Buffer, src: openarray[uint8], pal: openarray[Pixel])
   ## loads the data from `src` into the buffer using the given palette
@@ -228,7 +229,7 @@ proc xdiv[T](n, x: T): T =
   if x == 0: return n
   return n div x
 
-template check(cond: bool, msg: string) =
+template check(cond, msg: untyped) =
   if not cond: raise newException(BufferError, msg)
 
 proc fxsin(n: int): int =
@@ -271,15 +272,15 @@ proc color*(c: string): Pixel =
 proc color*[T](r, g, b: T): Pixel =
   return pixel(r, g, b, 0xff)
 
-converter fromU32(word: uint32): Pixel =
-  result.word = word
+# converter fromU32(word: uint32): Pixel =
+#   result.word = word
 
 converter toBytes(str: string): seq[byte] =
   result = @[]
   for c in str:
     result.add c.byte
 
-converter toBool[T](cmp: T): bool = cmp != 0
+# converter toBool[T](cmp: T): bool = cmp != 0
 
 proc clipRect(r: ptr Rect, to: Rect) =
   let
@@ -311,28 +312,62 @@ proc newBuffer*(w, h: int): Buffer =
   result.w = w; result.h = h
   result.reset()
 
-proc loadBufferFromMemory(data: seq[byte]): Buffer =
-  var width, height, components: cint
+const
+  STBI_default*    = 0
+  STBI_grey*       = 1
+  STBI_grey_alpha* = 2
+  STBI_rgb*        = 3
+  STBI_rgb_alpha*  = 4
+
+proc stbi_failure_reason_c(): cstring
+  {.cdecl, importc: "stbi_failure_reason".}
+
+proc stbi_failure_reason*(): string =
+  return $stbi_failure_reason_c()
+
+{.push cdecl, importc.}
+proc stbi_image_free(retval_from_stbi_load: pointer)
+proc stbi_load_from_memory(
+  buffer: ptr cuchar,
+  len: cint,
+  x, y, channels_in_file: var cint,
+  desired_channels: cint
+): ptr cuchar
+proc stbi_load(
+  filename: cstring,
+  x, y, channels_in_file: var cint,
+  desired_channels: cint
+): ptr cuchar
+{.pop.}
+
+proc newBufferFile*(filename: string): Buffer =
+  var width, height, bpp: cint
+  let data = stbi_load(filename.cstring, width, height, bpp, 4.cint)
+  check(data != nil, stbi_failure_reason())
+  var pixels = newSeq[uint32](width * height)
+  copyMem(pixels[0].addr, data, pixels.len * sizeof(uint32))
+  result = newBuffer(width, height)
+  result.loadPixels(pixels, FMT_RGBA)
+  stbi_image_free(data)
+
+
+proc newBufferString*(data: string): Buffer =
+  # return loadBufferFromMemory(data)
+  var width, height, bpp: cint
   var data = cast[ptr cuchar](data[0].unsafeAddr)
   let pixelData = stbi_load_from_memory(data, data.len.cint,
-    width, height, components, STBI_rgb_alpha)
+    width, height, bpp, 4)
   check(pixelData != nil, stbi_failure_reason())
-  var pixels = newSeq[byte](width * height)
-  copyMem(pixels[0].addr, pixelData, pixelData.len)
+  var pixels = newSeq[uint32](width * height)
+  copyMem(pixels[0].addr, pixelData, pixels.len)
   result = newBuffer(width, height)
   result.loadPixels(pixels, FMT_RGBA)
   stbi_image_free(pixelData)
 
-proc newBufferFile*(filename: string): Buffer =
-  return newBufferString readFile(filename)
-
-proc newBufferString*(data: string): Buffer =
-  return loadBufferFromMemory(data)
-
 proc cloneBuffer*(src: Buffer): Buffer =
   deepCopy(result, src)
 
-proc loadPixels*(buf: Buffer, src: openarray[SomeUnsignedInt], fmt: PixelFormat) =
+proc loadPixels*(buf: Buffer, src: openarray[uint32], fmt: PixelFormat) =
   var sr, sg, sb, sa: int
   let sz = (buf.w * buf.h) - 1
   case fmt:
@@ -577,13 +612,11 @@ proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int) =
 
 proc drawRect*(buf: Buffer, c: Pixel, x, y, w, h: int) =
   var
-    (x, y, w, h) = (x, y, w, h)
     r = (x: x, y: y, w: w, h: h)
   clipRect(r.addr, buf.clip)
-  y = r.h
-  for y in countdown(r.h - 1, 0):
-    for x in countdown(r.w - 1, 0):
-      blendPixel(buf.mode, buf.pixels[(r.x + (r.y + y) * buf.w) + x].addr, c)
+  for y1 in countdown(r.h - 1, 0):
+    for x1 in countdown(r.w - 1, 0):
+      blendPixel(buf.mode, buf.pixels[(r.x + (r.y + y1) * buf.w) + x1].addr, c)
 
 proc drawBox*(buf: Buffer, c: Pixel, x, y, w, h: int) =
   buf.drawRect(c, x + 1, y, w - 1, 1)
@@ -799,9 +832,9 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
   if right.x  < buf.clip.x or left.x >= buf.clip.x + buf.clip.w: return
   # Destination
   var 
-    xl, xr = top.x shl FX_BITS_12
-    il = xdiv((left.x - top.x) shl FX_BITS_12, left.y - top.y)
-    ir = xdiv((right.x - top.x) shl FX_BITS_12, right.y - top.y)
+    xl, xr = cast[int](top.x shl FX_BITS_12.int)
+    il = xdiv((left.x - top.x) shl FX_BITS_12, left.y - top.y).int
+    ir = xdiv((right.x - top.x) shl FX_BITS_12, right.y - top.y).int
   # Source
   let
     sxi  = (xdiv(sub.w shl FX_BITS_12, w).float * cos(-t.r)).int
@@ -819,7 +852,7 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
         # Adjust for right-angled rotation
         top.y - 1
       else:
-        top.y
+        top.y    
   while dy <= bottom.y:
     # Invert source iterators & increments if we are scaled negatively
     let (tsx, tsxi) = if invX:
@@ -832,12 +865,14 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
       else:
         (sy, syi)
     # Draw row
-    drawScanline(buf, src, sub, xl shr FX_BITS_12, xr shr FX_BITS_12, dy,
+    # debugEcho xl shr FX_BITS_12, " ", xr shr FX_BITS_12, " ", dy, " ",
+      # tsx, " ", tsy, " ", tsxi, " ", tsyi
+    drawScanline(buf, src, sub, cast[int16](xl shr FX_BITS_12), cast[int16](xr shr FX_BITS_12), dy,
       tsx, tsy, tsxi, tsyi);
     sx += sxoi
     sy += syoi
-    xl += il
-    xr += ir
+    xl += cast[int](il)
+    xr += cast[int](ir)
     dy += 1
     # Modify increments if we've reached the left or right corner */
     if dy == left.y:

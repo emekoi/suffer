@@ -23,6 +23,7 @@ const
 
 var 
   DEFAULT_FONT =  newFontFile("font.ttf", 64)
+  TEST_IMAGE = newBufferFile("cat.png")
   testBuffer = newBuffer(128, 128)
   ticks = 0.0
   rot = 0.0
@@ -87,41 +88,21 @@ proc draw_ring(buf: Buffer): bool =
   buf.draw_ring(random_color(), 512.random(), 512.random(), 255.random())
 
 proc draw_buffer_basic(buf: Buffer): bool =
-  let d = (512 div 2) - (255 div 2)
-  testBuffer.noise(random(int32.high).uint32, 0, 255, false)
-  testBuffer.drawLine(random_color(), 128, 128, 0, 0)
-  testBuffer.drawRect(random_color(), 0, 0, 64, 64)
-  testBuffer.drawBox(random_color(), 0, 0, 128, 128)
-  testBuffer.drawCircle(random_color(), d, d, 16)
-  testBuffer.drawRing(random_color(), d, d, 96)
-  testBuffer.drawPixel(random_color(), 128, 128)
-  buf.drawBuffer(testBuffer, 0, 0)
-
+  buf.drawBuffer(TEST_IMAGE, 0, 0)
 
 proc draw_buffer_scaled(buf: Buffer): bool =
-  let d = (512 div 2) - (255 div 2)
-  testBuffer.noise(random(int32.high).uint32, 0, 255, false)
-  testBuffer.drawLine(random_color(), 128, 128, 0, 0)
-  testBuffer.drawRect(random_color(), 0, 0, 64, 64)
-  testBuffer.drawBox(random_color(), 0, 0, 128, 128)
-  testBuffer.drawCircle(random_color(), d, d, 16)
-  testBuffer.drawRing(random_color(), d, d, 96)
-  testBuffer.drawPixel(random_color(), 128, 128)
-  buf.drawBuffer(testBuffer, 0, 0, (0.0, 0.0, 0.0, 3.0, 2.0))
+  let (sx, sy) = (
+    ScreenW / TEST_IMAGE.w,
+    ScreenH / TEST_IMAGE.h,
+    )
+  buf.drawBuffer(TEST_IMAGE, 0, 0, (0.0, 0.0, 0.0, sx, sy))
 
 
 proc draw_buffer_rotate_scaled(buf: Buffer): bool =
-  let d = (512 div 2) - (255 div 2)
-  testBuffer.noise(random(int32.high).uint32, 0, 255, false)
-  testBuffer.drawLine(random_color(), 128, 128, 0, 0)
-  testBuffer.drawRect(random_color(), 0, 0, 64, 64)
-  testBuffer.drawBox(random_color(), 0, 0, 128, 128)
-  testBuffer.drawCircle(random_color(), d, d, 16)
-  testBuffer.drawRing(random_color(), d, d, 96)
-  testBuffer.drawPixel(random_color(), 128.random(), 128.random())
+  
   ticks += 0.02; rot = (rot + 1.0);
-  buf.drawBuffer(testBuffer, 256, 256,
-    (63.0, 63.0, rot.degToRad(),
+  buf.drawBuffer(TEST_IMAGE, 255, 255,
+    (TEST_IMAGE.w.float / 2.0, TEST_IMAGE.h.float / 2.0, rot.degToRad(),
     2.0 * ticks.sin().abs() + 0.4,
     2.0 * ticks.sin().abs() + 0.4))
 
@@ -180,7 +161,7 @@ proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
       quit "ERROR: couldn't lock screen: " & $sdl.getError()
   result = cb(app.canvas)
   if palette_active: app.canvas.palette(Palettes[PaletteNames[current_palette]])
-  app.canvas.drawBuffer(txt, 0, 0)
+  # app.canvas.drawBuffer(txt, 0, 0)
   copyMem(screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
   if screen != nil and screen.mustLock(): screen.unlockSurface()
   if app.window.updateWindowSurface() != 0:
