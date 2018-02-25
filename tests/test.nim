@@ -1,3 +1,9 @@
+#  Copyright (c) 2017 emekoi
+#
+#  This library is free software; you can redistribute it and/or modify it
+#  under the terms of the MIT license. See LICENSE for details.
+#
+
 import 
   sdl2/sdl,
   ../src/suffer,
@@ -16,6 +22,7 @@ const
   ScreenH = 512
 
 var 
+  DEFAULT_FONT =  newFontFile("font.ttf", 64)
   testBuffer = newBuffer(128, 128)
   ticks = 0.0
   rot = 0.0
@@ -24,7 +31,7 @@ var
 
 proc random_pixel(): Pixel =
   if palette_active:
-    result = Palettes[PaletteNames[current_palette]][random(4) + 1]
+    result = Palettes[PaletteNames[current_palette]][random(4)]
   else:
     result.rgba.r = random(255).uint8 + 1'u8
     result.rgba.g = random(255).uint8 + 1'u8
@@ -163,6 +170,9 @@ proc exit(app: App) =
   sdl.quit()
   sdl.logInfo sdl.LogCategoryApplication, "SDL shutdown completed"
 
+
+let txt = DEFAULT_FONT.render("HELLO WORLD")
+
 proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
   let screen = app.window.getWindowSurface
   if screen != nil and screen.mustLock():
@@ -170,6 +180,7 @@ proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
       quit "ERROR: couldn't lock screen: " & $sdl.getError()
   result = cb(app.canvas)
   if palette_active: app.canvas.palette(Palettes[PaletteNames[current_palette]])
+  app.canvas.drawBuffer(txt, 0, 0)
   copyMem(screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
   if screen != nil and screen.mustLock(): screen.unlockSurface()
   if app.window.updateWindowSurface() != 0:
@@ -181,7 +192,6 @@ proc update(app: App) =
     last = 0.0
     e: sdl.Event
     clear = true
-    
   while true:
     if palette_active:
       app.window.setWindowTitle(Title & $timer.getFps() & " fps | " & PaletteNames[current_palette])
@@ -200,11 +210,11 @@ proc update(app: App) =
               total_tests - 1
             else:
               current_test - 1
-          testBuffer.clear(color(0, 0, 0))
+          testBuffer.clear(color(0xff, 0xff, 0xff))
           clear = false
         of sdl.K_RIGHT:
           current_test = (current_test + 1) mod total_tests
-          testBuffer.clear(color(0, 0, 0))
+          testBuffer.clear(color(0xff, 0xff, 0xff))
           clear = false
         of sdl.K_UP:
           if palette_active:
@@ -222,7 +232,7 @@ proc update(app: App) =
       else: discard
     
     timer.step()
-    if not clear: app.canvas.clear(color(0, 0, 0))
+    if not clear: app.canvas.clear(color(0xff, 0xff, 0xff))
     clear = app.draw(Tests[current_test])
     let step = 1.0 / max_fps
     let now = sdl.getTicks().float / 1000.0

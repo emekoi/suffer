@@ -9,11 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
-#include "ttf.h"
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "lib/stb_truetype.h"
+#include "stb_truetype.h"
 
-/* ttf.c/h provides some higher level functionality around `stb_truetype` --
+/* ttf.c provides some higher level functionality around `stb_truetype` --
  * most importantly it provides a function which takes a string and a font and
  * returns an 8bit bitmap of the rendered string's text.
  *
@@ -23,6 +22,14 @@
  * the buffer rather than overwriting whatever already exists in it; this is
  * beneficial in situations where character bounding boxes may overlap.
  */
+
+typedef struct {
+  stbtt_fontinfo font;
+  void *fontData;
+  float ptsize;
+  float scale;
+  int baseline;
+} ttf_Font;
 
 
 ttf_Font *ttf_new(const void *data, int len) {

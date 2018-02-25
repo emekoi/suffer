@@ -2,7 +2,7 @@
 
 version       = "0.1.0"
 author        = "emekoi"
-description   = "a nim library for drawing 2d shapes and images to 32bit software pixel buffers"
+description   = "a nim library for drawing 2d shapes, text, and images to 32bit software pixel buffers"
 license       = "MIT"
 srcDir        = "src"
 skipDirs      = @["docs", "private"]
@@ -22,4 +22,5 @@ task docs, "generate documentation and place it in the docs folder":
 
 task test, "runs tests":
   withDir "tests":
-    exec "nim c -r --d:release test.nim"
+    # exec "nim c -r --d:release test.nim"
+    exec "nim c -r test.nim"

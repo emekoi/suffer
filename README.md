@@ -1,3 +1,3 @@
 # suffer
 --------
-a nim library for drawing 2d shapes and images to 32bit software pixel buffers
+a nim library for drawing 2d shapes, text,and images to 32bit software pixel buffers

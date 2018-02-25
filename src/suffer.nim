@@ -1,15 +1,19 @@
-{.deadCodeElim: on, optimization: speed.}
-
 #  Copyright (c) 2017 emekoi
 #
 #  This library is free software; you can redistribute it and/or modify it
 #  under the terms of the MIT license. See LICENSE for details.
 #
 
+{.deadCodeElim: on, compile: "private/ttf_impl.c".}
+
+when defined(Posix) and not defined(haiku):
+  {.passl: "-lm".}
+
 import
   strutils,
   sequtils,
-  math
+  math,
+  private/stb
 
 when defined(MODE_RGBA):
   const RGB_MASK = 0x00FFFFFF'u32
@@ -21,6 +25,9 @@ else:
   const RGB_MASK = 0x00FFFFFF'u32
 
 type
+  BufferError* = object of Exception
+  FontError* = object of Exception
+  
   PixelFormat* = enum
     ## the different pixel formats supported
     FMT_BGRA
@@ -74,6 +81,18 @@ type
     pixels*: seq[Pixel]
     w*, h*: int
 
+  stbtt_fontinfo = object
+
+  ttf_Font = ref object
+    font*: stbtt_fontinfo
+    fontData*: pointer
+    ptsize*: cfloat
+    scale*: cfloat
+    baseline*: cint
+  
+  Font* = ref ptr ttf_Font
+    ## a reference to the actual font
+
 proc pixel*[T](r, g, b, a: T): Pixel
   ## creates a pixel with the color `rgba(r, g, b, a)`
 proc color*(c: string): Pixel
@@ -81,7 +100,11 @@ proc color*(c: string): Pixel
 proc color*[T](r, g, b: T): Pixel
   ## an alias for `pixel(r, g, b, 255)`
 proc newBuffer*(w, h: int): Buffer
-  ## creates a pixel buffer
+  ## creates a blank pixel buffer
+proc newBufferFile*(filename: string): Buffer
+  ## creates a new pixel buffer from a file
+proc newBufferString*(data: string): Buffer
+  ## creates a new pixel buffer from a string
 proc cloneBuffer*(src: Buffer): Buffer
   ## creates a copy of the buffer
 proc loadPixels*(buf: Buffer, src: openarray[SomeUnsignedInt], fmt: PixelFormat)
@@ -115,17 +138,19 @@ proc noise*(buf: Buffer, seed: uint, low, high: int, grey: bool)
 proc floodFill*(buf: Buffer, c: Pixel, x, y: int)
   ## fills the pixel (x, y) and all surrounding pixels of the same color with the color `c`
 proc drawPixel*(buf: Buffer, c: Pixel, x, y: int)
-  ## draws a pixel of color `c` at (x, y)
+  ## draws a pixel of color `c` at `(x, y)`
 proc drawLine*(buf: Buffer, c: Pixel, x0, y0, x1, y1: int)
-  ## draws a line of color `c` through (x0, y0), (x1, y1)
+  ## draws a line of color `c` through `(x0, y0)`, (x`1, y1)`
 proc drawRect*(buf: Buffer, c: Pixel, x, y, w, h: int)
-  ## draws a rect with the dimensions w X h, of color `c` at (x, y)
+  ## draws a rect with the dimensions w X h, of color `c` at `(x, y)`
 proc drawBox*(buf: Buffer, c: Pixel, x, y, w, h: int)
-  ## draws a box with the dimensions w X h, of color `c` at (x, y)
+  ## draws a box with the dimensions w X h, of color `c` at `(x, y)`
 proc drawCircle*(buf: Buffer, c: Pixel, x, y, r: int)
-  ## draws a circle with radius of `r` and color of `c` at (x, y)
+  ## draws a circle with radius of `r` and color of `c` at `(x, y)`
 proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int)
-  ## draws a ring with a radius of `r` and color of `c` at (x, y)
+  ## draws a ring with a radius of `r` and color of `c` at `(x, y)`
+proc drawText*(buf: Buffer, font: Font, c: Pixel, txt: string, x, y, width: int)
+  ## draws the string `txt` with the color `c` and a maximum width of `width` at `(x, y)`
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform)
   ## draw the Buffer `src` at (x, y) with a clipping rect of `sub` and a transform of `t`
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect)
@@ -148,6 +173,20 @@ proc displace*(buf, src, map: Buffer, channelX, channelY: char, scaleX, scaleY: 
   ## uses `map` to displace `src`, then draws `src` onto `buf`
 proc blur*(buf, src: Buffer, radiusx, radiusy: int)
   ## blurs then draws `src` onto `buf`
+proc newFont*(data: seq[byte], ptsize: float): Font
+  ## attemtpts to create a font from a sequence of bytes
+proc newFontFile*(filename: string, ptsize: float): Font
+  ## loads a font from a file
+proc newFontString*(data: string, ptsize: float): Font
+  ## creates a font from a string
+proc setSize*(font: Font, ptsize: float)
+  ## sets the font point size
+proc getHeight*(font: Font): int
+  ## gets the height of the font
+proc getWidth*(font: Font, txt: string): int
+  ## gets the width of `str` rendered in the font
+proc render*(font: Font, txt: string): Buffer
+  ## creates a new Buffer with `txt` rendered on it using `font`
 
 proc `$`*(p: Pixel): string =
   return "($#, ($#, $#, $#, $#))" % [$p.word, $p.rgba.r, $p.rgba.g, $p.rgba.b, $p.rgba.a]
@@ -189,18 +228,15 @@ proc xdiv[T](n, x: T): T =
   if x == 0: return n
   return n div x
 
-proc check(cond: bool, fname: string, msg: string) =
-  if not cond:
-    write(stderr, "(error)" & fname & " " & msg & "\n")
-    quit(QuitFailure)
+template check(cond: bool, msg: string) =
+  if not cond: raise newException(BufferError, msg)
 
 proc fxsin(n: int): int =
   return tableSin[n and FX_MASK_10]
 
-proc checkBufferSizesMatch(a, b: Buffer, fname: string) =
-  check(a.w == b.w or a.h == b.h, fname, "expected buffer sizes to match") 
+proc checkBufferSizesMatch(a, b: Buffer) =
+  check(a.w == b.w or a.h == b.h, "expected buffer sizes to match") 
     
-
 proc rand128init(seed: uint): RandState =
   result.x = (seed and 0xff000000'u) or 1'u
   result.y = seed and 0xff0000'u
@@ -238,6 +274,13 @@ proc color*[T](r, g, b: T): Pixel =
 converter fromU32(word: uint32): Pixel =
   result.word = word
 
+converter toBytes(str: string): seq[byte] =
+  result = @[]
+  for c in str:
+    result.add c.byte
+
+converter toBool[T](cmp: T): bool = cmp != 0
+
 proc clipRect(r: ptr Rect, to: Rect) =
   let
     x1 = max(r.x, to.x)
@@ -261,12 +304,30 @@ proc clipRectAndOffset(r: ptr Rect, x, y: ptr int, to: Rect) =
 
 proc newBuffer*(w, h: int): Buffer =
   new result
-  check(w > 0, "newBuffer", "expected width of 1 or greater")
-  check(h > 0, "newBuffer", "expected height of 1 or greater")
+  check(w > 0, "expected width of 1 or greater")
+  check(h > 0, "expected height of 1 or greater")
   result.pixels = repeat(color(0, 0, 0), w * h)
   # initialize the buffer
   result.w = w; result.h = h
   result.reset()
+
+proc loadBufferFromMemory(data: seq[byte]): Buffer =
+  var width, height, components: cint
+  var data = cast[ptr cuchar](data[0].unsafeAddr)
+  let pixelData = stbi_load_from_memory(data, data.len.cint,
+    width, height, components, STBI_rgb_alpha)
+  check(pixelData != nil, stbi_failure_reason())
+  var pixels = newSeq[byte](width * height)
+  copyMem(pixels[0].addr, pixelData, pixelData.len)
+  result = newBuffer(width, height)
+  result.loadPixels(pixels, FMT_RGBA)
+  stbi_image_free(pixelData)
+
+proc newBufferFile*(filename: string): Buffer =
+  return newBufferString readFile(filename)
+
+proc newBufferString*(data: string): Buffer =
+  return loadBufferFromMemory(data)
 
 proc cloneBuffer*(src: Buffer): Buffer =
   deepCopy(result, src)
@@ -372,8 +433,7 @@ proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float) =
   let (sx, sy) = (abs(sx), abs(sy))
   if sx == 0 or sy == 0: return
   if sub.w <= 0 or sub.h <= 0: return
-  check sub.x >= 0 and sub.y >= 0 and sub.x + sub.w <= src.w and sub.y + sub.h <= src.h,
-    "copyPixels", "sub rectangle out of bounds"
+  check sub.x >= 0 and sub.y >= 0 and sub.x + sub.w <= src.w and sub.y + sub.h <= src.h, "sub rectangle out of bounds"
   # Dispatch
   if (sx == 1 and sy == 1):
   # Basic un-scaled copy
@@ -587,6 +647,24 @@ proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int) =
       dx -= 1
       radiusError += 2 * (dy - dx + 1)
 
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+
+proc drawText*(buf: Buffer, font: Font, c: Pixel, txt: string, x, y, width: int) =
+  let b = font.render(txt)
+  buf.drawBuffer(b, x, y)
+
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################
+
 proc drawBufferBasic(buf: Buffer, src: Buffer, x, y: int, sub: Rect) =
   # Clip to destination buffer
   var (sub, x, y) = (sub, x, y)
@@ -785,8 +863,7 @@ proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect) =
   var sub = sub
   if sub.w <= 0 or sub.h <= 0: return
-  check(sub.x >= 0 and sub.y >= 0 and sub.x + sub.w <= src.w and sub.y + sub.h <= src.h,
-        "drawBuffer", "sub rectangle out of bounds")
+  check(sub.x >= 0 and sub.y >= 0 and sub.x + sub.w <= src.w and sub.y + sub.h <= src.h, "sub rectangle out of bounds")
   drawBufferBasic(buf, src, x, y, sub)
 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, t: Transform) =
@@ -813,7 +890,7 @@ proc desaturate*(buf: Buffer, amount: int) =
 
 
 proc mask*(buf, mask: Buffer, channel: char) =
-  checkBufferSizesMatch(buf, mask, "mask")
+  checkBufferSizesMatch(buf, mask)
   let channel = ($channel.toLowerAscii)[0]
   for i in 0..<(buf.w * buf.h):
     case channel
@@ -826,12 +903,12 @@ proc mask*(buf, mask: Buffer, channel: char) =
     of 'a':
       buf.pixels[i].rgba.a = ((buf.pixels[i].rgba.a.int * mask.pixels[i].rgba.a.int) shr 8).uint8
     else:
-      check(false, "mask", "expected channel to be 'r', 'g', 'b' or 'a'")
+      check(false, "expected channel to be 'r', 'g', 'b' or 'a'")
 
 proc palette*(buf: Buffer, palette: openarray[Pixel]) =
   var pal: array[256, Pixel]
   let ncolors = palette.len()
-  check(ncolors != 0, "palette", "expected non-empty table")
+  check(ncolors != 0, "expected non-empty table")
   # load palette from table
   for i in 0..<256:
     pal[i] = palette[((i * ncolors) shr 8)]
@@ -848,17 +925,15 @@ proc xorshift64star(x: ptr uint64): uint64 =
   x[] = x[] xor (x[] shr 27)
   return x[] * 2685821657736338717'u64
 
-# doesn't work
 proc dissolve*(buf: Buffer, amount: int, seed: uint) =
   let amount = amount.clamp(0, 0xff).uint8
   var seed: uint64 = (1'u64 shl 32) or seed
   for p in buf.pixels.mitems:
     if (xorshift64star(seed.addr) and 0xff) < amount:
       p.rgba.a = 0
-      # p.word = 0
 
 proc wave*(buf, src: Buffer, amountX, amountY, scaleX, scaleY, offsetX, offsetY: int) =
-  checkBufferSizesMatch(buf, src, "wave")
+  checkBufferSizesMatch(buf, src)
   let
     scaleX = scaleX * FX_UNIT_10
     scaleY = scaleY * FX_UNIT_10
@@ -870,24 +945,24 @@ proc wave*(buf, src: Buffer, amountX, amountY, scaleX, scaleY, offsetX, offsetY:
       let oy = (fxsin(offsetY + ((x * scaleY) shr FX_BITS_10)) * amountY) shr FX_BITS_10
       buf.pixels[y * buf.w + x] = src.getPixel(x + ox, y + oy)
 
-proc getChannel(fname: string, px: Pixel, channel: char): uint8 =
+proc getChannel(px: Pixel, channel: char): uint8 =
   case channel
   of 'r': return px.rgba.r
   of 'g': return px.rgba.g
   of 'b': return px.rgba.b
   of 'a': return px.rgba.a
-  else: check(false, fname, "bad channel")
+  else: check(false, "bad channel")
 
 proc displace*(buf, src, map: Buffer, channelX, channelY: char, scaleX, scaleY: int) =
   let (scaleX, scaleY) = (scaleX * (1 shl 7), scaleY * (1 shl 7))
-  checkBufferSizesMatch(buf, src, "displace")
-  checkBufferSizesMatch(buf, map, "displace")
+  checkBufferSizesMatch(buf, src)
+  checkBufferSizesMatch(buf, map)
   for y in 0..<buf.h:
     var m = map.pixels[y * buf.w..<map.pixels.len]
     for x in 0..<buf.w:
       let
-        cx = ((getChannel("displace", m[x], channelX) - (1 shl 7)).int * scaleX) shr 14
-        cy = ((getChannel("displace", m[x], channelY) - (1 shl 7)).int * scaleY) shr 14
+        cx = ((getChannel(m[x], channelX) - (1 shl 7)).int * scaleX) shr 14
+        cy = ((getChannel(m[x], channelY) - (1 shl 7)).int * scaleY) shr 14
       buf.pixels[y * buf.w + x] = src.getPixel(x + cx, y + cy)
 
 
@@ -912,7 +987,7 @@ proc blur*(buf, src: Buffer, radiusx, radiusy: int) =
     dx = 256 / (radiusx * 2 + 1)
     dy = 256 / (radiusy * 2 + 1)
     bounds: Rect = (radiusx, radiusy, w - radiusx, h - radiusy)
-  checkBufferSizesMatch(buf, src, "blur")
+  checkBufferSizesMatch(buf, src)
   var
     p2: Pixel
     r, g, b = 0'u8
@@ -932,3 +1007,55 @@ proc blur*(buf, src: Buffer, radiusx, radiusy: int) =
       buf.pixels[x + y * buf.h].rgba.g = ((g.float * dy).int shr 8).uint8
       buf.pixels[x + y * buf.h].rgba.b = ((b.float * dy).int shr 8).uint8
       buf.pixels[x + y * buf.h].rgba.a = 0xff
+
+{.push cdecl, importc.}
+proc ttf_new(data: pointer, len: cint): ptr ttf_Font
+proc ttf_destroy(self: ptr ttf_Font)
+proc ttf_ptsize(self: ptr ttf_Font, ptsize: cfloat)
+proc ttf_height(self: ptr ttf_Font): cint
+proc ttf_width(self: ptr ttf_Font, str: cstring): cint
+proc ttf_render(self: ptr ttf_Font,
+  str: cstring, w, h: var cint): pointer
+{.pop.}
+
+converter toCFont(font: Font): ptr ttf_Font = font[]
+
+proc finalizer(font: Font) =
+  if font != nil: ttf_destroy(font)
+  
+proc newFont*(data: seq[byte], ptsize: float): Font =
+  new result, finalizer
+  result[] = ttf_new(data[0].unsafeAddr, data.len.cint)
+  if result == nil: raise newException(FontError, "unable to load font")
+  result.setSize(ptsize)
+    
+proc newFontString*(data: string, ptsize: float): Font =
+  return newFont(data, ptsize)
+
+proc newFontFile*(filename: string, ptsize: float): Font =
+  let data = readFile(filename)
+  result = newFontString(data, ptsize)
+
+proc setSize*(font: Font, ptsize: float) =
+  ttf_ptsize(font, ptsize.cfloat)
+
+proc getHeight*(font: Font): int =
+  return ttf_height(font).int
+
+proc getWidth*(font: Font, txt: string): int =
+  return ttf_width(font, txt.cstring).int
+      
+proc render*(font: Font, txt: string): Buffer =
+  var
+    w, h: cint = 0
+    txt = txt
+  if txt == nil or txt.len == 0: txt = " "
+  let bitmap = ttf_render(font, txt.cstring, w, h);
+  if bitmap == nil:
+    raise newException(FontError, "could not render text")
+  # Load bitmap and free intermediate 8bit bitmap
+  var pixels = newSeq[byte](w * h)
+  copyMem(pixels[0].addr, bitmap, w * h)
+  result = newBuffer(w, h)
+  result.loadPixels8(pixels)
+  

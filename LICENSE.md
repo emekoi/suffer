@@ -27,8 +27,12 @@ The project also includes 3rd party source files, the full licenses for these
 files can be found through their corresponding URL or in the files themselves.
 An overview of the source files are as follows:
 
-net/dyad/*
-. Asynchronous networking for C
-. MIT license
-. https://github.com/rxi/dyad
+src/lib/stb_image.h
+. Sean Barrett's image loading library
+. Public domain
+. https://github.com/nothings/stb
 
+src/lib/stb_truetype.h
+. Sean Barrett's true type font library
+. Public domain
+. https://github.com/nothings/stb
