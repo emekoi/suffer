@@ -17,7 +17,7 @@ from timer import nil
 #########
 
 const
-  Title = "drawing-test | "
+  Title = "drawing-test"
   ScreenW = 512
   ScreenH = 512
 
@@ -127,13 +127,23 @@ type
   App = ref object
     window*: sdl.Window
     canvas*: Buffer
-    
+
+var maxWidth = 0
+
+proc drawFps(buf: Buffer) =
+  let fps = DEFAULT_FONT.render($timer.getFps() & " fps")
+  if fps.w + 2 > maxWidth: maxWidth = fps.w + 2
+  let fps1 = newBuffer(maxWidth, fps.h)
+  fps1.drawRect(color(0, 0, 0), 0, 0, maxWidth, fps.h)
+  fps1.drawBox(color(0, 0, 0), 0, 0, maxWidth, fps.h)
+  fps1.drawBuffer(fps, 2, 0)
+  buf.drawBuffer(fps1, 0, 0, (0.0, 0.0, 0.0, 2.0, 2.0))
+
 proc init(app: App): bool =
   randomize()
   if sdl.init(sdl.InitVideo) != 0:
     quit "ERROR: can't initialize SDL: " & $sdl.getError()
     return false
-  app.canvas = newBuffer(ScreenW, ScreenH)
   # Create window
   app.window = sdl.createWindow(
     Title,
@@ -144,6 +154,9 @@ proc init(app: App): bool =
     quit "ERROR: can't create window: " & $sdl.getError()
     return false
   sdl.logInfo sdl.LogCategoryApplication, "SDL initialized successfully"
+  
+  app.canvas = newBuffer(ScreenW, ScreenH)
+
   return true
 
 proc exit(app: App) =
@@ -151,19 +164,14 @@ proc exit(app: App) =
   sdl.quit()
   sdl.logInfo sdl.LogCategoryApplication, "SDL shutdown completed"
 
-
-var txt = DEFAULT_FONT.render("HELLO WORLD")
-
 proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
   let screen = app.window.getWindowSurface
   if screen != nil and screen.mustLock():
     if screen.lockSurface() != 0:
       quit "ERROR: couldn't lock screen: " & $sdl.getError()
   result = cb(app.canvas)
+  drawFps(app.canvas)
   if palette_active: app.canvas.palette(Palettes[PaletteNames[current_palette]])
-  app.canvas.setColor(color(0, 0, 0))
-  app.canvas.drawBuffer(txt, 2, 0)
-  app.canvas.reset()
   copyMem(screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
   if screen != nil and screen.mustLock(): screen.unlockSurface()
   if app.window.updateWindowSurface() != 0:
@@ -177,9 +185,7 @@ proc update(app: App) =
     clear = true
   while true:
     if palette_active:
-      app.window.setWindowTitle(Title & $timer.getFps() & " fps | " & PaletteNames[current_palette])
-    else:
-      app.window.setWindowTitle(Title & $timer.getFps() & " fps")
+      app.window.setWindowTitle(Title & " | " & PaletteNames[current_palette])
     while sdl.pollEvent(addr(e)) != 0:
       case e.kind
       of sdl.Quit:

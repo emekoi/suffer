@@ -4,7 +4,7 @@
 #  under the terms of the MIT license. See LICENSE for details.
 #
 
-{.deadCodeElim: on.}
+{.deadCodeElim: on, optimization: speed.}
 {.compile: "private/ttf_impl.c".}
 {.compile: "private/stb_impl.c".}
 
@@ -14,7 +14,9 @@ when defined(Posix) and not defined(haiku):
 import
   strutils,
   sequtils,
-  math
+  math,
+  tables,
+  hashes
 
 when defined(MODE_RGBA):
   const RGB_MASK = 0x00FFFFFF'u32
@@ -151,7 +153,7 @@ proc drawCircle*(buf: Buffer, c: Pixel, x, y, r: int)
   ## draws a circle with radius of `r` and color of `c` at `(x, y)`
 proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int)
   ## draws a ring with a radius of `r` and color of `c` at `(x, y)`
-proc drawText*(buf: Buffer, font: Font, c: Pixel, txt: string, x, y, width: int)
+proc drawText*(buf: Buffer, font: Font, c: Pixel, txt: string, x, y: int, width: int=0)
   ## draws the string `txt` with the color `c` and a maximum width of `width` at `(x, y)`
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform)
   ## draw the Buffer `src` at (x, y) with a clipping rect of `sub` and a transform of `t`
@@ -231,7 +233,7 @@ proc xdiv[T](n, x: T): T =
   return n div x
 
 template check(cond, msg: untyped) =
-  if not cond: raise newException(BufferError, msg)
+  if not cond: GC_FullCollect(); raise newException(BufferError, msg)
 
 proc fxsin(n: int): int =
   return tableSin[n and FX_MASK_10]
@@ -310,13 +312,6 @@ proc newBuffer*(w, h: int): Buffer =
   # initialize the buffer
   result.w = w; result.h = h
   result.reset()
-
-const
-  STBI_default*    = 0
-  STBI_grey*       = 1
-  STBI_grey_alpha* = 2
-  STBI_rgb*        = 3
-  STBI_rgb_alpha*  = 4
 
 proc stbi_failure_reason_c(): cstring
   {.cdecl, importc: "stbi_failure_reason".}
@@ -678,23 +673,23 @@ proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int) =
       dx -= 1
       radiusError += 2 * (dy - dx + 1)
 
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
+var fontTexCache = initTable[Font, Table[string, Buffer]]()
+
+proc hash(f: Font): Hash =
+  result = cast[int](f[]).hash
+  result = !$result
 
 proc drawText*(buf: Buffer, font: Font, c: Pixel, txt: string, x, y, width: int) =
-  let b = font.render(txt)
-  buf.drawBuffer(b, x, y)
+  let color = buf.mode.color
+  buf.setColor(c)
+  if not fontTexCache.hasKey(font):
+    fontTexCache[font] = initTable[string, Buffer](16)
+    fontTexCache[font][txt] = font.render(txt)
+  elif not fontTexCache[font].hasKey(txt):
+    fontTexCache[font][txt] = font.render(txt)
 
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
-###############################################################################
+  buf.drawBuffer(fontTexCache[font][txt], x, y)
+  buf.setColor(color)
 
 proc drawBufferBasic(buf: Buffer, src: Buffer, x, y: int, sub: Rect) =
   # Clip to destination buffer
