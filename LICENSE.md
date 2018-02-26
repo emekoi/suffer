@@ -36,3 +36,11 @@ src/lib/stb_truetype.h
 . Sean Barrett's true type font library
 . Public domain
 . https://github.com/nothings/stb
+
+=================================================================================
+
+This library is based off the following libraries:
+
+. A tiny C89 library for drawing 2d shapes and images to 32bit software pixel buffers.
+. MIT License
+. https://github.com/rxi/sera
