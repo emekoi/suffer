@@ -17,7 +17,7 @@ from timer import nil
 #########
 
 const
-  Title = "drawing-test"
+  Title = "example"
   ScreenW = 512
   ScreenH = 512
 

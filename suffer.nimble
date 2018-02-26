@@ -19,7 +19,7 @@ task docs, "generate documentation and place it in the docs folder":
     if file[^4..<file.len] == ".nim":
       exec "nimble doc2 -o:docs/" & file[4..^5] & ".html " & file
 
-task test, "runs tests":
-  withDir "tests":
-    # exec "nim c -r --d:release test.nim"
-    exec "nim c -r test.nim"
+task example, "runs the (bad) included example":
+  withDir "example":
+    # exec "nim c -r --d:release example.nim"
+    exec "nim c -r example.nim"

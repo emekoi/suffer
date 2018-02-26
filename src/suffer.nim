@@ -193,6 +193,7 @@ proc render*(font: Font, txt: string): Buffer
   ## creates a new Buffer with `txt` rendered on it using `font`
 
 proc `$`*(p: Pixel): string =
+  ## a readable representation of the pixel
   return "($#, ($#, $#, $#, $#))" % [$p.word, $p.rgba.r, $p.rgba.g, $p.rgba.b, $p.rgba.a]
 
 proc lerp[T](bits, a, b, p: T): T =
