@@ -5,8 +5,8 @@
 #
 
 {.deadCodeElim: on, optimization: speed.}
-{.compile: "private/ttf_impl.c".}
-{.compile: "private/stb_impl.c".}
+{.compile: "suffer/ttf_impl.c".}
+{.compile: "suffer/stb_impl.c".}
 
 when defined(Posix) and not defined(haiku):
   {.passl: "-lm".}
