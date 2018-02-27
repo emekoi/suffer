@@ -45,18 +45,12 @@ proc random_color(): Pixel =
   result.rgba.a = 255
 
 proc draw_noise(buf: Buffer): bool =
-  discard testBuffer
-  let b = newBuffer(128, 128)
-  b.noise(random(int32.high).uint32, 0, 255, false)
-  buf.copyPixels(b, 0, 0, 4.0, 4.0)
+  testBuffer.noise(random(int32.high).uint32, 0, 255, false)
+  buf.copyPixels(testBuffer, 0, 0, 4.0, 4.0)
 
-proc draw_flood_fill(buf: Buffer): bool =
+proc draw_flood_fill(buf: Buffer): bool {.locks: 0.} =
   discard testBuffer
-  let color = buf.getPixel(0, 0)
-  var c = random_pixel()
-  while c.word == color.word:
-    c = random_pixel()
-  buf.floodFill(c, 0, 0)
+  buf.floodFill(random_pixel(), 0, 0)
 
 proc draw_pixel(buf: Buffer): bool =
   testBuffer.drawPixel(random_color(), random(128), random(128))
@@ -126,18 +120,25 @@ const
 type
   App = ref object
     window*: sdl.Window
+    screen*: sdl.Surface
     canvas*: Buffer
 
-var maxWidth = 0
-
+var
+  maxWidth = 1
+  fontTexCache = initTable[string, Buffer]()
+  border = newBuffer(maxWidth, 1)
 proc drawFps(buf: Buffer) =
-  let fps = DEFAULT_FONT.render($timer.getFps() & " fps")
-  if fps.w + 2 > maxWidth: maxWidth = fps.w + 2
-  let fps1 = newBuffer(maxWidth, fps.h)
-  fps1.drawRect(color(0, 0, 0), 0, 0, maxWidth, fps.h)
-  fps1.drawBox(color(0, 0, 0), 0, 0, maxWidth, fps.h)
-  fps1.drawBuffer(fps, 2, 0)
-  buf.drawBuffer(fps1, 0, 0, (0.0, 0.0, 0.0, 2.0, 2.0))
+  let txt = $timer.getFps() & " fps"
+  if not fontTexCache.hasKey(txt):
+    fontTexCache[txt] = DEFAULT_FONT.render(txt)
+  let fps = fontTexCache[txt]
+  if fps.w + 2 > maxWidth:
+    maxWidth = fps.w + 2
+    border = newBuffer(maxWidth, fps.h)
+  border.drawRect(color(0, 0, 0), 0, 0, maxWidth, fps.h)
+  border.drawBox(color(0, 0, 0), 0, 0, maxWidth, fps.h)
+  border.drawBuffer(fps, 2, 0)
+  buf.drawBuffer(border, 0, 0, (0.0, 0.0, 0.0, 2.0, 2.0))
 
 proc init(app: App): bool =
   randomize()
@@ -154,9 +155,8 @@ proc init(app: App): bool =
     quit "ERROR: can't create window: " & $sdl.getError()
     return false
   sdl.logInfo sdl.LogCategoryApplication, "SDL initialized successfully"
-  
+  app.screen = app.window.getWindowSurface
   app.canvas = newBuffer(ScreenW, ScreenH)
-
   return true
 
 proc exit(app: App) =
@@ -164,16 +164,18 @@ proc exit(app: App) =
   sdl.quit()
   sdl.logInfo sdl.LogCategoryApplication, "SDL shutdown completed"
 
+# 3,932K
+
 proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
-  let screen = app.window.getWindowSurface
-  if screen != nil and screen.mustLock():
-    if screen.lockSurface() != 0:
-      quit "ERROR: couldn't lock screen: " & $sdl.getError()
   result = cb(app.canvas)
   drawFps(app.canvas)
-  if palette_active: app.canvas.palette(Palettes[PaletteNames[current_palette]])
-  copyMem(screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
-  if screen != nil and screen.mustLock(): screen.unlockSurface()
+  if palette_active: 
+    app.canvas.palette(Palettes[PaletteNames[current_palette]])
+  if app.screen != nil and app.screen.mustLock():
+    if app.screen.lockSurface() != 0:
+      quit "ERROR: couldn't lock screen: " & $sdl.getError()
+  copyMem(app.screen.pixels, app.canvas.pixels[0].addr, (ScreenW * ScreenH) * sizeof(Pixel))
+  if app.screen.mustLock(): app.screen.unlockSurface()
   if app.window.updateWindowSurface() != 0:
     quit "ERROR: couldn't update screen: " & $sdl.getError()
 
@@ -229,6 +231,7 @@ proc update(app: App) =
     last += step
     if wait > 0:
       sdl.delay((wait * 1000.0).uint32)
+      GC_fullCollect()
     else:
       last = now
 
@@ -237,7 +240,7 @@ proc update(app: App) =
 ########
 
 var
-  app = App(window: nil, canvas: nil)
+  app = App(window: nil, canvas: nil, screen: nil)
 
 if init(app):
   app.update()

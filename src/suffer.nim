@@ -94,7 +94,9 @@ type
     baseline*: cint
   
   Font* = ref ptr ttf_Font
-    ## a reference to the actual font
+    ## a reference to the actual font object
+
+{.push inline.}
 
 proc pixel*[T](r, g, b, a: T): Pixel
   ## creates a pixel with the color `rgba(r, g, b, a)`
@@ -192,6 +194,8 @@ proc getWidth*(font: Font, txt: string): int
 proc render*(font: Font, txt: string): Buffer
   ## creates a new Buffer with `txt` rendered on it using `font`
 
+{.pop.}
+
 proc `$`*(p: Pixel): string =
   ## a readable representation of the pixel
   return "($#, ($#, $#, $#, $#))" % [$p.word, $p.rgba.r, $p.rgba.g, $p.rgba.b, $p.rgba.a]
@@ -276,13 +280,8 @@ proc color*(c: string): Pixel =
 proc color*[T](r, g, b: T): Pixel =
   return pixel(r, g, b, 0xff)
 
-# converter fromU32(word: uint32): Pixel =
-#   result.word = word
-
 converter toBytes(str: string): seq[byte] =
   return cast[seq[byte]](str)
-
-# converter toBool[T](cmp: T): bool = cmp != 0
 
 proc clipRect(r: ptr Rect, to: Rect) =
   let
@@ -416,6 +415,8 @@ proc getPixel*(buf: Buffer, x: int, y: int): Pixel =
 proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int) =
   if (x >= 0 and y >= 0 and x < buf.w and y < buf.h):
     buf.pixels[x + y * buf.w] = c
+
+{.push checks: off.}
 
 proc copyPixelsBasic(buf, src: Buffer, x, y: int, sub: Rect) =
   # Clip to destination buffer
@@ -1037,6 +1038,8 @@ proc blur*(buf, src: Buffer, radiusx, radiusy: int) =
       buf.pixels[x + y * buf.h].rgba.b = ((b.float * dy).int shr 8).uint8
       buf.pixels[x + y * buf.h].rgba.a = 0xff
 
+{.pop.}
+
 {.push cdecl, importc.}
 proc ttf_new(data: pointer, len: cint): ptr ttf_Font
 proc ttf_destroy(self: ptr ttf_Font)
@@ -1073,7 +1076,9 @@ proc getHeight*(font: Font): int =
 
 proc getWidth*(font: Font, txt: string): int =
   return ttf_width(font, txt.cstring).int
-      
+
+{.push checks: off.}
+  
 proc render*(font: Font, txt: string): Buffer =
   var
     w, h: cint = 0
@@ -1087,4 +1092,5 @@ proc render*(font: Font, txt: string): Buffer =
   copyMem(pixels[0].addr, bitmap, w * h * sizeof(byte))
   result = newBuffer(w, h)
   result.loadPixels8(pixels)
-  
+
+{.pop.}
