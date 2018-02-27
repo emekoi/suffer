@@ -452,10 +452,10 @@ proc copyPixelsScaled(buf, src: Buffer, x, y: int, sub: Rect, scalex, scaley: fl
       sx = 0
       dx = x + buf.w * dy
     let
-      pixels = src.pixels[((sub.x shr FX_BITS_12) + src.w * (sy shr FX_BITS_12))..<src.pixels.len]
+      offset = (sub.x shr FX_BITS_12) + src.w * (sy shr FX_BITS_12)
       edx = dx + w
     while dx < edx:
-      buf.pixels[dx] = pixels[sx shr FX_BITS_12]
+      buf.pixels[dx] = src.pixels[offset + (sx shr FX_BITS_12)]
       sx += inx; dx += 1
     sy += iny
 
@@ -493,7 +493,7 @@ proc noise*(buf: Buffer, seed: uint, low, high: int, grey: bool) =
       buf.pixels[i].rgba.g = low.uint8 + buf.pixels[i].rgba.g mod (high - low).uint8
       buf.pixels[i].rgba.b = low.uint8 + buf.pixels[i].rgba.b mod (high - low).uint8
 
-proc floodFill(buf: Buffer, c, o: Pixel, x, y: int) =
+proc floodFill(buf: Buffer, c, o: Pixel, x, y: int) {.locks: 0.} =
   if
     y < 0 or y >= buf.h or x < 0 or x >= buf.w or
     buf.pixels[x + y * buf.w].word != o.word: return
@@ -988,11 +988,10 @@ proc displace*(buf, src, map: Buffer, channelX, channelY: char, scaleX, scaleY: 
   checkBufferSizesMatch(buf, src)
   checkBufferSizesMatch(buf, map)
   for y in 0..<buf.h:
-    var m = map.pixels[y * buf.w..<map.pixels.len]
     for x in 0..<buf.w:
       let
-        cx = ((getChannel(m[x], channelX) - (1 shl 7)).int * scaleX) shr 14
-        cy = ((getChannel(m[x], channelY) - (1 shl 7)).int * scaleY) shr 14
+        cx = ((getChannel(map.pixels[y * buf.w + x], channelX) - (1 shl 7)).int * scaleX) shr 14
+        cy = ((getChannel(map.pixels[y * buf.w + x], channelY) - (1 shl 7)).int * scaleY) shr 14
       buf.pixels[y * buf.w + x] = src.getPixel(x + cx, y + cy)
 
 

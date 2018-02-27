@@ -48,9 +48,12 @@ proc draw_noise(buf: Buffer): bool =
   testBuffer.noise(random(int32.high).uint32, 0, 255, false)
   buf.copyPixels(testBuffer, 0, 0, 4.0, 4.0)
 
-proc draw_flood_fill(buf: Buffer): bool {.locks: 0.} =
-  discard testBuffer
-  buf.floodFill(random_pixel(), 0, 0)
+proc draw_flood_fill(buf: Buffer): bool =
+  let color = testBuffer.getPixel(0, 0)
+  var fill = random_color()
+  while fill == color: fill = random_color()
+  testBuffer.floodFill(fill, 0, 0)
+  buf.copyPixels(testBuffer, 0, 0, 4.0, 4.0)
 
 proc draw_pixel(buf: Buffer): bool =
   testBuffer.drawPixel(random_color(), random(128), random(128))
