@@ -267,15 +267,15 @@ proc pixel*[T](r, g, b, a: T): Pixel =
 proc color*(c: string): Pixel =
   let hex = parseHexInt(c)
   if hex >= 0xffffff:
-    result.rgba.r = (hex shr 24) and 0xff
-    result.rgba.g = (hex shr 16) and 0xff
-    result.rgba.b = (hex shr  8) and 0xff
-    result.rgba.a = (hex shr  0) and 0xff
+    result.rgba.r = ((hex shr 24) and 0xff).uint8
+    result.rgba.g = ((hex shr 16) and 0xff).uint8
+    result.rgba.b = ((hex shr  8) and 0xff).uint8
+    result.rgba.a = ((hex shr  0) and 0xff).uint8
   else:
-    result.rgba.r = (hex shr 16) and 0xff
-    result.rgba.g = (hex shr  8) and 0xff
-    result.rgba.b = (hex shr  0) and 0xff
-    result.rgba.a = 0xff
+    result.rgba.r = ((hex shr 16) and 0xff).uint8
+    result.rgba.g = ((hex shr  8) and 0xff).uint8
+    result.rgba.b = ((hex shr  0) and 0xff).uint8
+    result.rgba.a = 0xff'u8
   
 proc color*[T](r, g, b: T): Pixel =
   return pixel(r, g, b, 0xff)
@@ -370,10 +370,10 @@ proc loadPixels*(buf: Buffer, src: openarray[uint32], fmt: PixelFormat) =
     of FMT_ABGR: (sr = 24; sg = 16; sb =  8; sa =  0;)
 
   for i in countdown(sz, 0):
-    buf.pixels[i].rgba.r = (src[i] shr sr) and 0xff
-    buf.pixels[i].rgba.g = (src[i] shr sg) and 0xff
-    buf.pixels[i].rgba.b = (src[i] shr sb) and 0xff
-    buf.pixels[i].rgba.a = (src[i] shr sa) and 0xff
+    buf.pixels[i].rgba.r = ((src[i] shr sr) and 0xff).uint8
+    buf.pixels[i].rgba.g = ((src[i] shr sg) and 0xff).uint8
+    buf.pixels[i].rgba.b = ((src[i] shr sb) and 0xff).uint8
+    buf.pixels[i].rgba.a = ((src[i] shr sa) and 0xff).uint8
 
 proc loadPixels8*(buf: Buffer, src: openarray[uint8], pal: openarray[Pixel]) =
   let sz = (buf.w * buf.h) - 1
