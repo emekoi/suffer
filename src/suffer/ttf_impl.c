@@ -31,7 +31,12 @@ typedef struct {
   int baseline;
 } ttf_Font;
 
-
+ttf_Font *ttf_new(const void *data, int len);
+void ttf_destroy(ttf_Font *self);
+void ttf_ptsize(ttf_Font *self, float ptsize);
+int ttf_height(ttf_Font *self);
+int ttf_width(ttf_Font *self, const char *str);
+void *ttf_render(ttf_Font *self, const char *str, int *w, int *h);
 
 ttf_Font *ttf_new(const void *data, int len) {
   ttf_Font *self = calloc(1, sizeof(*self));
