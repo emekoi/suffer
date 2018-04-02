@@ -201,7 +201,7 @@ proc `$`*(p: Pixel): string =
   return "($#, ($#, $#, $#, $#))" % [$p.word, $p.rgba.r, $p.rgba.g, $p.rgba.b, $p.rgba.a]
 
 proc lerp[T](bits, a, b, p: T): T =
-  return (a + (b - a) * p) shr bits
+  return ((1 - p) * a + p * b) shr bits
 
 const
   PI2 = 6.28318530718'f32
