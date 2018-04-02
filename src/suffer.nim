@@ -129,6 +129,8 @@ proc setClip*(buf: Buffer, r: Rect)
   ## sets the buffer's clipping rectanlge
 proc reset*(buf: Buffer)
   ## resets the buffer to a default state
+proc resize*(buf: Buffer, width, height: int)
+  ## resizes the buffer
 proc clear*(buf: Buffer, c: Pixel)
   ## sets the buffer's blend mode
 proc getPixel*(buf: Buffer, x: int, y: int): Pixel
@@ -403,6 +405,9 @@ proc reset*(buf: Buffer) =
   buf.setAlpha(0xff)
   buf.setColor color(0xff, 0xff, 0xff)
   buf.setClip((0, 0, buf.w, buf.h))
+
+proc resize*(buf: Buffer, width, height: int) =
+  buf.pixels.setLen(width * height)
 
 proc clear*(buf: Buffer, c: Pixel) =
   for pixel in mitems(buf.pixels): pixel = c
