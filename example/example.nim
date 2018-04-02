@@ -32,12 +32,12 @@ var
 
 proc random_pixel(): Pixel =
   if palette_active:
-    result = Palettes[PaletteNames[current_palette]][random(4)]
+    result = Palettes[PaletteNames[current_palette]][rand(4)]
   else:
-    result.rgba.r = random(255).uint8 + 1'u8
-    result.rgba.g = random(255).uint8 + 1'u8
-    result.rgba.b = random(255).uint8 + 1'u8
-    result.rgba.a = random(255).uint8 + 1'u8
+    result.rgba.r = rand(255).uint8 + 1'u8
+    result.rgba.g = rand(255).uint8 + 1'u8
+    result.rgba.b = rand(255).uint8 + 1'u8
+    result.rgba.a = rand(255).uint8 + 1'u8
   
 
 proc random_color(): Pixel =
@@ -45,7 +45,7 @@ proc random_color(): Pixel =
   result.rgba.a = 255
 
 proc draw_noise(buf: Buffer): bool =
-  testBuffer.noise(random(int32.high).uint32, 0, 255, false)
+  testBuffer.noise(rand(int32.high).uint32, 0, 255, false)
   buf.copyPixels(testBuffer, 0, 0, 4.0, 4.0)
 
 proc draw_flood_fill(buf: Buffer): bool =
@@ -56,33 +56,33 @@ proc draw_flood_fill(buf: Buffer): bool =
   buf.copyPixels(testBuffer, 0, 0, 4.0, 4.0)
 
 proc draw_pixel(buf: Buffer): bool =
-  testBuffer.drawPixel(random_color(), random(128), random(128))
+  testBuffer.drawPixel(random_color(), rand(128), rand(128))
   buf.drawBuffer(testBuffer, 0, 0, (0.0, 0.0, 0.0, 4.0, 4.0, ))
 
 proc draw_line(buf: Buffer): bool =
   discard testBuffer
   result = true
-  buf.drawLine(random_color(), 512.random(), 512.random(), 512.random(), 512.random())
+  buf.drawLine(random_color(), 512.rand(), 512.rand(), 512.rand(), 512.rand())
 
 proc draw_rect(buf: Buffer): bool =
   discard testBuffer
   result = true
-  buf.drawRect(random_color(), 512.random(), 512.random(), 255.random(), 255.random())
+  buf.drawRect(random_color(), 512.rand(), 512.rand(), 255.rand(), 255.rand())
 
 proc draw_box(buf: Buffer): bool =
   discard testBuffer
   result = true
-  buf.drawBox(random_color(), 512.random(), 512.random(), 255.random(), 255.random())
+  buf.drawBox(random_color(), 512.rand(), 512.rand(), 255.rand(), 255.rand())
 
 proc draw_circle(buf: Buffer): bool =
   discard testBuffer
   result = true
-  buf.drawCircle(random_color(), 512.random(), 512.random(), 255.random())
+  buf.drawCircle(random_color(), 512.rand(), 512.rand(), 255.rand())
 
 proc draw_ring(buf: Buffer): bool =
   discard testBuffer
   result = true
-  buf.draw_ring(random_color(), 512.random(), 512.random(), 255.random())
+  buf.draw_ring(random_color(), 512.rand(), 512.rand(), 255.rand())
 
 proc draw_buffer_basic(buf: Buffer): bool =
   buf.drawBuffer(TEST_IMAGE, 0, 0)
@@ -147,7 +147,6 @@ proc init(app: App): bool =
   randomize()
   if sdl.init(sdl.InitVideo) != 0:
     quit "ERROR: can't initialize SDL: " & $sdl.getError()
-    return false
   # Create window
   app.window = sdl.createWindow(
     Title,
@@ -156,7 +155,6 @@ proc init(app: App): bool =
     ScreenW, ScreenH, 0)
   if app.window == nil:
     quit "ERROR: can't create window: " & $sdl.getError()
-    return false
   sdl.logInfo sdl.LogCategoryApplication, "SDL initialized successfully"
   app.screen = app.window.getWindowSurface
   app.canvas = newBuffer(ScreenW, ScreenH)
