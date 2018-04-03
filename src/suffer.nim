@@ -100,9 +100,13 @@ type
 
 proc pixel*[T](r, g, b, a: T): Pixel
   ## creates a pixel with the color `rgba(r, g, b, a)`
+proc pixel*(r, g, b, a: float): Pixel
+  ## creates a pixel with the color `rgba(r, g, b, a)`
 proc color*(c: string): Pixel
   ## creates a pixel from the given hex color code
 proc color*[T](r, g, b: T): Pixel
+  ## an alias for `pixel(r, g, b, 255)`
+proc color*(r, g, b: float): Pixel
   ## an alias for `pixel(r, g, b, 255)`
 proc newBuffer*(w, h: int): Buffer
   ## creates a blank pixel buffer
@@ -202,8 +206,11 @@ proc `$`*(p: Pixel): string =
   ## a readable representation of the pixel
   return "($#, ($#, $#, $#, $#))" % [$p.word, $p.rgba.r, $p.rgba.g, $p.rgba.b, $p.rgba.a]
 
-proc lerp[T](bits, a, b, p: T): T =
-  return ((1 - p) * a + p * b) shr bits
+template lerp[T](bits, a, b, p: T): untyped =
+  ((1 - p) * a + p * b) shr bits
+
+template lerp[T](a, b, p: T): untyped =
+  ((1 - p) * a + p * b)
 
 const
   PI2 = 6.28318530718'f32
@@ -266,6 +273,14 @@ proc pixel*[T](r, g, b, a: T): Pixel =
   result.rgba.b = clamp(b, 0, 0xff).uint8
   result.rgba.a = clamp(a, 0, 0xff).uint8
 
+proc pixel*(r, g, b, a: float): Pixel =
+  let
+    r = lerp(0.0, 255.0, r).uint8
+    g = lerp(0.0, 255.0, g).uint8
+    b = lerp(0.0, 255.0, b).uint8
+    a = lerp(0.0, 255.0, a).uint8
+  return pixel(r, g, b, a)
+
 proc color*(c: string): Pixel =
   let hex = parseHexInt(c)
   if hex >= 0xffffff:
@@ -281,6 +296,9 @@ proc color*(c: string): Pixel =
   
 proc color*[T](r, g, b: T): Pixel =
   return pixel(r, g, b, 0xff)
+
+proc color*(r, g, b: float): Pixel =
+  return pixel(r, g, b, 1.0)
 
 converter toBytes(str: string): seq[byte] =
   return cast[seq[byte]](str)
