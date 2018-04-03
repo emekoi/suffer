@@ -108,6 +108,10 @@ proc color*[T](r, g, b: T): Pixel
   ## an alias for `pixel(r, g, b, 255)`
 proc color*(r, g, b: float): Pixel
   ## an alias for `pixel(r, g, b, 255)`
+proc rect*(x, y, w, h: int=0): Rect
+  ## creates a rect object with the given fields
+proc transform*(ox, oy, r: float=0.0, sx, sy: float=1.0): Transform
+  ## creates a transform object with the given fields
 proc newBuffer*(w, h: int): Buffer
   ## creates a blank pixel buffer
 proc newBufferFile*(filename: string): Buffer
@@ -141,9 +145,9 @@ proc getPixel*(buf: Buffer, x: int, y: int): Pixel
   ## gets the color of the pixel at (x, y) on the buffer
 proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int)
   ## sets the color of the pixel at (x, y) on the buffer
-proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float)
+proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float=1.0)
   ## copies the pixels from one buffer to another
-proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float)
+proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float=1.0)
   ## copies the pixels from one buffer to another
 proc noise*(buf: Buffer, seed: uint, low, high: int, grey: bool)
   ## fills the buffer with psuedo-random noise in the form of pixels
@@ -275,10 +279,10 @@ proc pixel*[T](r, g, b, a: T): Pixel =
 
 proc pixel*(r, g, b, a: float): Pixel =
   let
-    r = lerp(0.0, 255.0, r).uint8
-    g = lerp(0.0, 255.0, g).uint8
-    b = lerp(0.0, 255.0, b).uint8
-    a = lerp(0.0, 255.0, a).uint8
+    r = lerp(0.0, 256.0, r).int
+    g = lerp(0.0, 256.0, g).int
+    b = lerp(0.0, 256.0, b).int
+    a = lerp(0.0, 256.0, a).int
   return pixel(r, g, b, a)
 
 proc color*(c: string): Pixel =
@@ -300,8 +304,11 @@ proc color*[T](r, g, b: T): Pixel =
 proc color*(r, g, b: float): Pixel =
   return pixel(r, g, b, 1.0)
 
-converter toBytes(str: string): seq[byte] =
-  return cast[seq[byte]](str)
+proc rect*(x, y, w, h: int=0): Rect =
+  (x: x, y: y, w: w, h: h)
+
+proc transform*(ox, oy, r: float=0.0, sx, sy: float=1.0): Transform =
+  (ox: ox, oy: oy, r: r, sx: sx, sy: sy)
 
 proc clipRect(r: ptr Rect, to: Rect) =
   let
@@ -482,7 +489,7 @@ proc copyPixelsScaled(buf, src: Buffer, x, y: int, sub: Rect, scalex, scaley: fl
       sx += inx; dx += 1
     sy += iny
 
-proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float) =
+proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float=1.0) =
   let (sx, sy) = (abs(sx), abs(sy))
   if sx == 0 or sy == 0: return
   if sub.w <= 0 or sub.h <= 0: return
@@ -495,7 +502,7 @@ proc copyPixels*(buf, src: Buffer, x, y: int, sub: Rect, sx, sy: float) =
   # Scaled copy
     copyPixelsScaled(buf, src, x, y, sub, sx, sy)
 
-proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float) =
+proc copyPixels*(buf, src: Buffer, x, y: int, sx, sy: float=1.0) =
   copyPixels(buf, src, x, y, (0, 0, src.w, src.h), sx, sy)
 
 proc noise*(buf: Buffer, seed: uint, low, high: int, grey: bool) =
@@ -545,9 +552,9 @@ proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
   if alpha <= 1: return
   # Color
   if m.color.word != RGB_MASK:
-    s.rgba.r = (s.rgba.r * m.color.rgba.r) shr 8
-    s.rgba.g = (s.rgba.g * m.color.rgba.g) shr 8
-    s.rgba.b = (s.rgba.b * m.color.rgba.b) shr 8
+    s.rgba.r = ((s.rgba.r.int * m.color.rgba.r.int) shr 8).uint8
+    s.rgba.g = ((s.rgba.g.int * m.color.rgba.g.int) shr 8).uint8
+    s.rgba.b = ((s.rgba.b.int * m.color.rgba.b.int) shr 8).uint8
   # Blend
   case m.blend
   of BLEND_ALPHA:
@@ -883,8 +890,6 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
       else:
         (sy, syi)
     # Draw row
-    # debugEcho xl shr FX_BITS_12, " ", xr shr FX_BITS_12, " ", dy, " ",
-      # tsx, " ", tsy, " ", tsxi, " ", tsyi
     drawScanline(buf, src, sub, cast[int16](xl shr FX_BITS_12), cast[int16](xr shr FX_BITS_12), dy,
       tsx, tsy, tsxi, tsyi);
     sx += sxoi
@@ -1084,7 +1089,10 @@ proc newFont*(data: seq[byte], ptsize: float): Font =
   result.setSize(ptsize)
     
 proc newFontString*(data: string, ptsize: float): Font =
-  return newFont(data, ptsize)
+  new result, finalizer
+  result[] = ttf_new(data[0].unsafeAddr, data.len.cint)
+  if result == nil: raise newException(FontError, "unable to load font")
+  result.setSize(ptsize)
 
 proc newFontFile*(filename: string, ptsize: float): Font =
   let data = readFile(filename)
