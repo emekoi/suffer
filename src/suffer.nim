@@ -385,7 +385,10 @@ proc newBufferString*(str: string): Buffer =
   stbi_image_free(pixelData)
 
 proc cloneBuffer*(src: Buffer): Buffer =
-  deepCopy(result, src)
+  result = newBuffer(src.w, src.h)
+  let pixels = addr result.pixels[0]
+  copyMem(pixels, unsafeAddr src.pixels[0], result.w * result.h * sizeof(Pixel))
+  copyMem(addr result, unsafeAddr src, sizeof(Buffer))
 
 proc loadPixels*(buf: Buffer, src: openarray[uint32], fmt: PixelFormat) =
   var sr, sg, sb, sa: int
