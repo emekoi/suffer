@@ -96,7 +96,6 @@ proc draw_buffer_scaled(buf: Buffer): bool =
 
 
 proc draw_buffer_rotate_scaled(buf: Buffer): bool =
-  
   ticks += 0.02; rot = (rot + 1.0);
   buf.drawBuffer(TEST_IMAGE, 255, 255,
     (TEST_IMAGE.w.float / 2.0, TEST_IMAGE.h.float / 2.0, rot.degToRad(),
@@ -130,6 +129,7 @@ var
   maxWidth = 1
   fontTexCache = initTable[string, Buffer]()
   border = newBuffer(maxWidth, 1)
+  
 proc drawFps(buf: Buffer) =
   let txt = $timer.getFps() & " fps"
   if not fontTexCache.hasKey(txt):
@@ -140,7 +140,7 @@ proc drawFps(buf: Buffer) =
     border = newBuffer(maxWidth, fps.h)
   border.drawRect(color(0, 0, 0), 0, 0, maxWidth, fps.h)
   border.drawBox(color(0, 0, 0), 0, 0, maxWidth, fps.h)
-  border.drawBuffer(fps, 2, 0)
+  border.drawBuffer(fps, 4, 0)
   buf.drawBuffer(border, 0, 0, (0.0, 0.0, 0.0, 2.0, 2.0))
 
 proc init(app: App): bool =
@@ -164,8 +164,6 @@ proc exit(app: App) =
   app.window.destroyWindow()
   sdl.quit()
   sdl.logInfo sdl.LogCategoryApplication, "SDL shutdown completed"
-
-# 3,932K
 
 proc draw(app: App, cb: proc(canvas: Buffer): bool): bool =
   result = cb(app.canvas)

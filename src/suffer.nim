@@ -19,13 +19,13 @@ import
   hashes
 
 when defined(MODE_RGBA):
-  const RGB_MASK = 0x00FFFFFF'u32
+  const RGB_MASK: uint32 = 0x00FFFFFF
 elif defined(MODE_ARGB):
-  const RGB_MASK = 0xFFFFFF00'u32
+  const RGB_MASK: uint32 = 0xFFFFFF00
 elif defined(MODE_ABGR):
-  const RGB_MASK = 0xFFFFFF00'u32
+  const RGB_MASK: uint32 = 0xFFFFFF00
 else:
-  const RGB_MASK = 0x00FFFFFF'u32
+  const RGB_MASK: uint32 = 0x00FFFFFF
 
 type
   BufferError* = object of Exception
@@ -50,7 +50,7 @@ type
     BLEND_SCREEN
     BLEND_DIFFERENCE
 
-  Pixel* = object {.union.}
+  Pixel* {.packed.} = object {.union.}
     ## how color is represented
     ## dependeding on which mode is defined at compile time, a different color format is used
     word*: uint32
@@ -63,17 +63,17 @@ type
     else:
       rgba*: tuple[b, g, r, a: uint8]
 
-  Rect* = tuple
+  Rect* {.packed.} = tuple
     ## a rectangle used for clipping and drawing specific regions of buffer
     x, y, w, h: int
 
-  DrawMode* = object
+  DrawMode* {.packed.} = object
     ## affects how things are drawn onto the buffer
     color*: Pixel
     alpha*: uint8
     blend*: BlendMode
 
-  Transform* = tuple
+  Transform* {.packed.} = tuple
     ## describes a tranformation applied to a buffer when it is drawn onto another buffer
     ox, oy, r, sx, sy: float
 
@@ -86,7 +86,7 @@ type
 
   stbtt_fontinfo = object
 
-  ttf_Font = ref object
+  ttf_Font = object
     font*: stbtt_fontinfo
     fontData*: pointer
     ptsize*: cfloat
@@ -95,8 +95,6 @@ type
   
   Font* = ref ptr ttf_Font
     ## a reference to the actual font object
-
-{.push inline.}
 
 proc pixel*[T](r, g, b, a: T): Pixel
   ## creates a pixel with the color `rgba(r, g, b, a)`
@@ -204,7 +202,36 @@ proc getWidth*(font: Font, txt: string): int
 proc render*(font: Font, txt: string): Buffer
   ## creates a new Buffer with `txt` rendered on it using `font`
 
+# c imports
+proc stbi_failure_reason_c(): cstring
+  {.cdecl, importc: "stbi_failure_reason".}
+
+proc stbi_failure_reason(): string =
+  return $stbi_failure_reason_c()
+
+{.push cdecl, importc.}
+proc stbi_image_free(retval_from_stbi_load: pointer)
+proc stbi_load_from_memory(
+  buffer: ptr cuchar,
+  len: cint,
+  x, y, channels_in_file: var cint,
+  desired_channels: cint
+): ptr cuchar
+proc stbi_load(
+  filename: cstring,
+  x, y, channels_in_file: var cint,
+  desired_channels: cint
+): ptr cuchar
+proc ttf_new(data: pointer, len: cint): ptr ttf_Font
+proc ttf_destroy(self: ptr ttf_Font)
+proc ttf_ptsize(self: ptr ttf_Font, ptsize: cfloat)
+proc ttf_height(self: ptr ttf_Font): cint
+proc ttf_width(self: ptr ttf_Font, str: cstring): cint
+proc ttf_render(self: ptr ttf_Font,
+  str: cstring, w, h: var cint): pointer
 {.pop.}
+
+{.push checks: off, inline.}
 
 proc `$`*(p: Pixel): string =
   ## a readable representation of the pixel
@@ -340,27 +367,6 @@ proc newBuffer*(w, h: int): Buffer =
   result.w = w; result.h = h
   result.reset()
 
-proc stbi_failure_reason_c(): cstring
-  {.cdecl, importc: "stbi_failure_reason".}
-
-proc stbi_failure_reason(): string =
-  return $stbi_failure_reason_c()
-
-{.push cdecl, importc.}
-proc stbi_image_free(retval_from_stbi_load: pointer)
-proc stbi_load_from_memory(
-  buffer: ptr cuchar,
-  len: cint,
-  x, y, channels_in_file: var cint,
-  desired_channels: cint
-): ptr cuchar
-proc stbi_load(
-  filename: cstring,
-  x, y, channels_in_file: var cint,
-  desired_channels: cint
-): ptr cuchar
-{.pop.}
-
 proc newBufferFile*(filename: string): Buffer =
   var width, height, bpp: cint
   let data = stbi_load(filename.cstring, width, height, bpp, 4.cint)
@@ -436,6 +442,9 @@ proc reset*(buf: Buffer) =
 
 proc resize*(buf: Buffer, width, height: int) =
   buf.pixels.setLen(width * height)
+  buf.w = width
+  buf.h = height
+  buf.reset()
 
 proc clear*(buf: Buffer, c: Pixel) =
   for pixel in mitems(buf.pixels): pixel = c
@@ -448,8 +457,6 @@ proc getPixel*(buf: Buffer, x: int, y: int): Pixel =
 proc setPixel*(buf: Buffer, c: Pixel, x: int, y: int) =
   if (x >= 0 and y >= 0 and x < buf.w and y < buf.h):
     buf.pixels[x + y * buf.w] = c
-
-{.push checks: off.}
 
 proc copyPixelsBasic(buf, src: Buffer, x, y: int, sub: Rect) =
   # Clip to destination buffer
@@ -556,55 +563,55 @@ proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
   # Color
   if m.color.word != RGB_MASK:
     s.rgba.r = ((s.rgba.r.int * m.color.rgba.r.int) shr 8).uint8
-    s.rgba.g = ((s.rgba.g.int * m.color.rgba.g.int) shr 8).uint8
-    s.rgba.b = ((s.rgba.b.int * m.color.rgba.b.int) shr 8).uint8
-  # Blend
-  case m.blend
-  of BLEND_ALPHA:
-    discard
-  of BLEND_COLOR:
-    s = m.color
-  of BLEND_ADD:
-    s.rgba.r = min(d.rgba.r.int + s.rgba.r.int, 0xff).uint8
-    s.rgba.g = min(d.rgba.g.int + s.rgba.g.int, 0xff).uint8
-    s.rgba.b = min(d.rgba.b.int + s.rgba.b.int, 0xff).uint8
-  of BLEND_SUBTRACT:
-    s.rgba.r = min(d.rgba.r.int - s.rgba.r.int, 0).uint8
-    s.rgba.g = min(d.rgba.g.int - s.rgba.g.int, 0).uint8
-    s.rgba.b = min(d.rgba.b.int - s.rgba.b.int, 0).uint8
-  of BLEND_MULTIPLY:
-    s.rgba.r = ((s.rgba.r.int * d.rgba.r.int) shr 8).uint8
-    s.rgba.g = ((s.rgba.g.int * d.rgba.g.int) shr 8).uint8
-    s.rgba.b = ((s.rgba.b.int * d.rgba.b.int) shr 8).uint8
-  of BLEND_LIGHTEN:
-    s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int >
-          d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
-  of BLEND_DARKEN:
-    s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int <
-          d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
-  of BLEND_SCREEN:
-    s.rgba.r = (0xff - (((0xff - d.rgba.r.int) * (0xff - s.rgba.r.int)) shr 8)).uint8
-    s.rgba.g = (0xff - (((0xff - d.rgba.g.int) * (0xff - s.rgba.g.int)) shr 8)).uint8
-    s.rgba.b = (0xff - (((0xff - d.rgba.b.int) * (0xff - s.rgba.b.int)) shr 8)).uint8
-  of BLEND_DIFFERENCE:
-    s.rgba.r = abs(s.rgba.r.int - d.rgba.r.int).uint8
-    s.rgba.g = abs(s.rgba.g.int - d.rgba.g.int).uint8
-    s.rgba.b = abs(s.rgba.b.int - d.rgba.b.int).uint8
-  # Write
-  if alpha >= 254:
-    d[] = s
-  elif d.rgba.a >= 254'u8:
-    d.rgba.r = lerp(8, d.rgba.r.int, s.rgba.r.int, alpha).uint8
-    d.rgba.g = lerp(8, d.rgba.g.int, s.rgba.g.int, alpha).uint8
-    d.rgba.b = lerp(8, d.rgba.b.int, s.rgba.b.int, alpha).uint8
-  else:
-    let
-      a = 0xff - (((0xff - d.rgba.a.int) * (0xff - alpha)) shr 8)
-      z = (d.rgba.a.int * (0xff - alpha)) shr 8
-    d.rgba.r = div8Table[((d.rgba.r.int * z) shr 8) + ((s.rgba.r.int * alpha) shr 8)][a]
-    d.rgba.g = div8Table[((d.rgba.g.int * z) shr 8) + ((s.rgba.g.int * alpha) shr 8)][a]
-    d.rgba.b = div8Table[((d.rgba.b.int * z) shr 8) + ((s.rgba.b.int * alpha) shr 8)][a]
-    d.rgba.a = a.uint8
+    # s.rgba.g = ((s.rgba.g.int * m.color.rgba.g.int) shr 8).uint8
+    # s.rgba.b = ((s.rgba.b.int * m.color.rgba.b.int) shr 8).uint8
+  # # Blend
+  # case m.blend
+  # of BLEND_ALPHA:
+  #   discard
+  # of BLEND_COLOR:
+  #   s = m.color
+  # of BLEND_ADD:
+  #   s.rgba.r = min(d.rgba.r.int + s.rgba.r.int, 0xff).uint8
+  #   s.rgba.g = min(d.rgba.g.int + s.rgba.g.int, 0xff).uint8
+  #   s.rgba.b = min(d.rgba.b.int + s.rgba.b.int, 0xff).uint8
+  # of BLEND_SUBTRACT:
+  #   s.rgba.r = min(d.rgba.r.int - s.rgba.r.int, 0).uint8
+  #   s.rgba.g = min(d.rgba.g.int - s.rgba.g.int, 0).uint8
+  #   s.rgba.b = min(d.rgba.b.int - s.rgba.b.int, 0).uint8
+  # of BLEND_MULTIPLY:
+  #   s.rgba.r = ((s.rgba.r.int * d.rgba.r.int) shr 8).uint8
+  #   s.rgba.g = ((s.rgba.g.int * d.rgba.g.int) shr 8).uint8
+  #   s.rgba.b = ((s.rgba.b.int * d.rgba.b.int) shr 8).uint8
+  # of BLEND_LIGHTEN:
+  #   s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int >
+  #         d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
+  # of BLEND_DARKEN:
+  #   s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int <
+  #         d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
+  # of BLEND_SCREEN:
+  #   s.rgba.r = (0xff - (((0xff - d.rgba.r.int) * (0xff - s.rgba.r.int)) shr 8)).uint8
+  #   s.rgba.g = (0xff - (((0xff - d.rgba.g.int) * (0xff - s.rgba.g.int)) shr 8)).uint8
+  #   s.rgba.b = (0xff - (((0xff - d.rgba.b.int) * (0xff - s.rgba.b.int)) shr 8)).uint8
+  # of BLEND_DIFFERENCE:
+  #   s.rgba.r = abs(s.rgba.r.int - d.rgba.r.int).uint8
+  #   s.rgba.g = abs(s.rgba.g.int - d.rgba.g.int).uint8
+  #   s.rgba.b = abs(s.rgba.b.int - d.rgba.b.int).uint8
+  # # Write
+  # if alpha >= 254:
+  #   d[] = s
+  # elif d.rgba.a >= 254'u8:
+  #   d.rgba.r = lerp(8, d.rgba.r.int, s.rgba.r.int, alpha).uint8
+  #   d.rgba.g = lerp(8, d.rgba.g.int, s.rgba.g.int, alpha).uint8
+  #   d.rgba.b = lerp(8, d.rgba.b.int, s.rgba.b.int, alpha).uint8
+  # else:
+  #   let
+  #     a = 0xff - (((0xff - d.rgba.a.int) * (0xff - alpha)) shr 8)
+  #     z = (d.rgba.a.int * (0xff - alpha)) shr 8
+  #   d.rgba.r = div8Table[((d.rgba.r.int * z) shr 8) + ((s.rgba.r.int * alpha) shr 8)][a]
+  #   d.rgba.g = div8Table[((d.rgba.g.int * z) shr 8) + ((s.rgba.g.int * alpha) shr 8)][a]
+  #   d.rgba.b = div8Table[((d.rgba.b.int * z) shr 8) + ((s.rgba.b.int * alpha) shr 8)][a]
+  #   d.rgba.a = a.uint8
     
 
 proc drawPixel*(buf: Buffer, c: Pixel, x, y: int) =
@@ -770,9 +777,10 @@ proc drawBufferScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transfo
     var dx = odx
     var sx = osx;
     while dx < w:
+      var tmp = (sub.x + (sx shr FX_BITS_12)) +
+        (sub.y + (sy shr FX_BITS_12)) * src.w
       blendPixel(buf.mode, buf.pixels[(x + dx) + (y + dy) * buf.w].addr,
-                 src.pixels[(sub.x + (sx shr FX_BITS_12)) +
-                             (sub.y + (sy shr FX_BITS_12)) * src.w])
+                 src.pixels[tmp])
       sx += ix
       dx += 1
     sy += iy
@@ -1070,21 +1078,12 @@ proc blur*(buf, src: Buffer, radiusx, radiusy: int) =
 
 {.pop.}
 
-{.push cdecl, importc.}
-proc ttf_new(data: pointer, len: cint): ptr ttf_Font
-proc ttf_destroy(self: ptr ttf_Font)
-proc ttf_ptsize(self: ptr ttf_Font, ptsize: cfloat)
-proc ttf_height(self: ptr ttf_Font): cint
-proc ttf_width(self: ptr ttf_Font, str: cstring): cint
-proc ttf_render(self: ptr ttf_Font,
-  str: cstring, w, h: var cint): pointer
-{.pop.}
-
 converter toCFont(font: Font): ptr ttf_Font = font[]
 
 proc finalizer(font: Font) =
   if font != nil: ttf_destroy(font)
-  
+
+{.push checks: off, inline.}  
 proc newFont*(data: seq[byte], ptsize: float): Font =
   new result, finalizer
   result[] = ttf_new(data[0].unsafeAddr, data.len.cint)
@@ -1109,8 +1108,6 @@ proc getHeight*(font: Font): int =
 
 proc getWidth*(font: Font, txt: string): int =
   return ttf_width(font, txt.cstring).int
-
-{.push checks: off.}
   
 proc render*(font: Font, txt: string): Buffer =
   var
