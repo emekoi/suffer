@@ -21,5 +21,6 @@ task docs, "generate documentation and place it in the docs folder":
 
 task example, "runs the (bad) included example":
   withDir "example":
-    exec "nim c -r --d:release example.nim"
+    exec "mkdir -p bin"
+    exec "nim c -r example.nim"
     # exec "nim c -r example.nim"

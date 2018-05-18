@@ -84,9 +84,9 @@ type
     pixels*: seq[Pixel]
     w*, h*: int
 
-  stbtt_fontinfo = object
+  stbtt_fontinfo {.exportc.} = object
 
-  ttf_Font = object
+  ttf_Font {.exportc.} = object
     font*: stbtt_fontinfo
     fontData*: pointer
     ptsize*: cfloat
@@ -266,6 +266,9 @@ const
   div8Table: array[256, array[256, uint8]] = genDivTable()  
   tableSin = genSinTable()
   
+var
+  fontTexCache = initTable[Font, Table[string, Buffer]]()
+
 type
   Point = tuple
     x, y: int
@@ -563,55 +566,55 @@ proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
   # Color
   if m.color.word != RGB_MASK:
     s.rgba.r = ((s.rgba.r.int * m.color.rgba.r.int) shr 8).uint8
-    # s.rgba.g = ((s.rgba.g.int * m.color.rgba.g.int) shr 8).uint8
-    # s.rgba.b = ((s.rgba.b.int * m.color.rgba.b.int) shr 8).uint8
-  # # Blend
-  # case m.blend
-  # of BLEND_ALPHA:
-  #   discard
-  # of BLEND_COLOR:
-  #   s = m.color
-  # of BLEND_ADD:
-  #   s.rgba.r = min(d.rgba.r.int + s.rgba.r.int, 0xff).uint8
-  #   s.rgba.g = min(d.rgba.g.int + s.rgba.g.int, 0xff).uint8
-  #   s.rgba.b = min(d.rgba.b.int + s.rgba.b.int, 0xff).uint8
-  # of BLEND_SUBTRACT:
-  #   s.rgba.r = min(d.rgba.r.int - s.rgba.r.int, 0).uint8
-  #   s.rgba.g = min(d.rgba.g.int - s.rgba.g.int, 0).uint8
-  #   s.rgba.b = min(d.rgba.b.int - s.rgba.b.int, 0).uint8
-  # of BLEND_MULTIPLY:
-  #   s.rgba.r = ((s.rgba.r.int * d.rgba.r.int) shr 8).uint8
-  #   s.rgba.g = ((s.rgba.g.int * d.rgba.g.int) shr 8).uint8
-  #   s.rgba.b = ((s.rgba.b.int * d.rgba.b.int) shr 8).uint8
-  # of BLEND_LIGHTEN:
-  #   s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int >
-  #         d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
-  # of BLEND_DARKEN:
-  #   s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int <
-  #         d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
-  # of BLEND_SCREEN:
-  #   s.rgba.r = (0xff - (((0xff - d.rgba.r.int) * (0xff - s.rgba.r.int)) shr 8)).uint8
-  #   s.rgba.g = (0xff - (((0xff - d.rgba.g.int) * (0xff - s.rgba.g.int)) shr 8)).uint8
-  #   s.rgba.b = (0xff - (((0xff - d.rgba.b.int) * (0xff - s.rgba.b.int)) shr 8)).uint8
-  # of BLEND_DIFFERENCE:
-  #   s.rgba.r = abs(s.rgba.r.int - d.rgba.r.int).uint8
-  #   s.rgba.g = abs(s.rgba.g.int - d.rgba.g.int).uint8
-  #   s.rgba.b = abs(s.rgba.b.int - d.rgba.b.int).uint8
-  # # Write
-  # if alpha >= 254:
-  #   d[] = s
-  # elif d.rgba.a >= 254'u8:
-  #   d.rgba.r = lerp(8, d.rgba.r.int, s.rgba.r.int, alpha).uint8
-  #   d.rgba.g = lerp(8, d.rgba.g.int, s.rgba.g.int, alpha).uint8
-  #   d.rgba.b = lerp(8, d.rgba.b.int, s.rgba.b.int, alpha).uint8
-  # else:
-  #   let
-  #     a = 0xff - (((0xff - d.rgba.a.int) * (0xff - alpha)) shr 8)
-  #     z = (d.rgba.a.int * (0xff - alpha)) shr 8
-  #   d.rgba.r = div8Table[((d.rgba.r.int * z) shr 8) + ((s.rgba.r.int * alpha) shr 8)][a]
-  #   d.rgba.g = div8Table[((d.rgba.g.int * z) shr 8) + ((s.rgba.g.int * alpha) shr 8)][a]
-  #   d.rgba.b = div8Table[((d.rgba.b.int * z) shr 8) + ((s.rgba.b.int * alpha) shr 8)][a]
-  #   d.rgba.a = a.uint8
+    s.rgba.g = ((s.rgba.g.int * m.color.rgba.g.int) shr 8).uint8
+    s.rgba.b = ((s.rgba.b.int * m.color.rgba.b.int) shr 8).uint8
+  # Blend
+  case m.blend
+  of BLEND_ALPHA:
+    discard
+  of BLEND_COLOR:
+    s = m.color
+  of BLEND_ADD:
+    s.rgba.r = min(d.rgba.r.int + s.rgba.r.int, 0xff).uint8
+    s.rgba.g = min(d.rgba.g.int + s.rgba.g.int, 0xff).uint8
+    s.rgba.b = min(d.rgba.b.int + s.rgba.b.int, 0xff).uint8
+  of BLEND_SUBTRACT:
+    s.rgba.r = min(d.rgba.r.int - s.rgba.r.int, 0).uint8
+    s.rgba.g = min(d.rgba.g.int - s.rgba.g.int, 0).uint8
+    s.rgba.b = min(d.rgba.b.int - s.rgba.b.int, 0).uint8
+  of BLEND_MULTIPLY:
+    s.rgba.r = ((s.rgba.r.int * d.rgba.r.int) shr 8).uint8
+    s.rgba.g = ((s.rgba.g.int * d.rgba.g.int) shr 8).uint8
+    s.rgba.b = ((s.rgba.b.int * d.rgba.b.int) shr 8).uint8
+  of BLEND_LIGHTEN:
+    s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int >
+          d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
+  of BLEND_DARKEN:
+    s = if s.rgba.r.int + s.rgba.g.int + s.rgba.b.int <
+          d.rgba.r.int + d.rgba.g.int + d.rgba.b.int: s else: d[]
+  of BLEND_SCREEN:
+    s.rgba.r = (0xff - (((0xff - d.rgba.r.int) * (0xff - s.rgba.r.int)) shr 8)).uint8
+    s.rgba.g = (0xff - (((0xff - d.rgba.g.int) * (0xff - s.rgba.g.int)) shr 8)).uint8
+    s.rgba.b = (0xff - (((0xff - d.rgba.b.int) * (0xff - s.rgba.b.int)) shr 8)).uint8
+  of BLEND_DIFFERENCE:
+    s.rgba.r = abs(s.rgba.r.int - d.rgba.r.int).uint8
+    s.rgba.g = abs(s.rgba.g.int - d.rgba.g.int).uint8
+    s.rgba.b = abs(s.rgba.b.int - d.rgba.b.int).uint8
+  # Write
+  if alpha >= 254:
+    d[] = s
+  elif d.rgba.a >= 254'u8:
+    d.rgba.r = lerp(8, d.rgba.r.int, s.rgba.r.int, alpha).uint8
+    d.rgba.g = lerp(8, d.rgba.g.int, s.rgba.g.int, alpha).uint8
+    d.rgba.b = lerp(8, d.rgba.b.int, s.rgba.b.int, alpha).uint8
+  else:
+    let
+      a = 0xff - (((0xff - d.rgba.a.int) * (0xff - alpha)) shr 8)
+      z = (d.rgba.a.int * (0xff - alpha)) shr 8
+    d.rgba.r = div8Table[((d.rgba.r.int * z) shr 8) + ((s.rgba.r.int * alpha) shr 8)][a]
+    d.rgba.g = div8Table[((d.rgba.g.int * z) shr 8) + ((s.rgba.g.int * alpha) shr 8)][a]
+    d.rgba.b = div8Table[((d.rgba.b.int * z) shr 8) + ((s.rgba.b.int * alpha) shr 8)][a]
+    d.rgba.a = a.uint8
     
 
 proc drawPixel*(buf: Buffer, c: Pixel, x, y: int) =
@@ -673,10 +676,6 @@ proc drawCircle*(buf: Buffer, c: Pixel, x, y, r: int) =
   # Clipped completely off-screen?
   if x + dx < buf.clip.x or x - dx > buf.clip.x + buf.clip.w or
     y + dx < buf.clip.y or y - dx > buf.clip.y + buf.clip.h: return
-  # zeroset bit array of drawn rows -- we keep track of which rows have been
-  # drawn so that we can avoid overdraw
-  # memset(rows, 0, sizeof(rows));
-  reset(rows)
   while dx >= dy:
     DRAW_ROW(x - dx, y + dy, dx shl 1)
     DRAW_ROW(x - dx, y - dy, dx shl 1)
@@ -714,8 +713,6 @@ proc drawRing*(buf: Buffer, c: Pixel, x, y, r: int) =
     else:
       dx -= 1
       radiusError += 2 * (dy - dx + 1)
-
-var fontTexCache = initTable[Font, Table[string, Buffer]]()
 
 proc hash(f: Font): Hash =
   result = cast[int](f[]).hash
