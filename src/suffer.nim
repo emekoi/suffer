@@ -238,10 +238,10 @@ proc `$`*(p: Pixel): string =
   return "($#, ($#, $#, $#, $#))" % [$p.word, $p.rgba.r, $p.rgba.g, $p.rgba.b, $p.rgba.a]
 
 template lerp[T](bits, a, b, p: T): untyped =
-  ((1 - p) * a + p * b) shr bits
+  a + (((b - a) * p) shr bits)
 
 template lerp[T](a, b, p: T): untyped =
-  ((1 - p) * a + p * b)
+  ((T(1) - p) * a + p * b)
 
 const
   PI2 = 6.28318530718'f32
@@ -560,8 +560,8 @@ proc floodFill*(buf: Buffer, c: Pixel, x: int, y: int) =
   floodFill(buf, c, buf.getPixel(x, y), x, y)
 
 proc blendPixel(m: DrawMode, d: ptr Pixel, s: Pixel) =
-  let alpha = (s.rgba.a.int * m.alpha.int) shr 8
   var s = s
+  let alpha = (s.rgba.a.int * m.alpha.int) shr 8
   if alpha <= 1: return
   # Color
   if m.color.word != RGB_MASK:
