@@ -5,8 +5,8 @@
 #
 
 {.deadCodeElim: on, optimization: speed.}
-{.compile: "suffer/ttf_impl.c".}
-{.compile: "suffer/stb_impl.c".}
+{.compile: "private/ttf_impl.c".}
+{.compile: "private/stb_impl.c".}
 
 when defined(Posix) and not defined(haiku):
   {.passl: "-lm".}
@@ -19,13 +19,13 @@ import
   hashes
 
 when defined(MODE_RGBA):
-  const RGB_MASK: uint32 = 0x00FFFFFF
+  const RGB_MASK: uint32 = 0x00FFFFFF'u32
 elif defined(MODE_ARGB):
-  const RGB_MASK: uint32 = 0xFFFFFF00
+  const RGB_MASK: uint32 = 0xFFFFFF00'u32
 elif defined(MODE_ABGR):
-  const RGB_MASK: uint32 = 0xFFFFFF00
+  const RGB_MASK: uint32 = 0xFFFFFF00'u32
 else:
-  const RGB_MASK: uint32 = 0x00FFFFFF
+  const RGB_MASK: uint32 = 0x00FFFFFF'u32
 
 type
   BufferError* = object of Exception
