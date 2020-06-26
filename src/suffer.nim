@@ -28,8 +28,8 @@ else:
   const RGB_MASK: uint32 = 0x00FFFFFF'u32
 
 type
-  BufferError* = object of Exception
-  FontError* = object of Exception
+  BufferError* = object of CatchableError
+  FontError* = object of CatchableError
   
   PixelFormat* = enum
     ## the different pixel formats supported
@@ -50,7 +50,7 @@ type
     BLEND_SCREEN
     BLEND_DIFFERENCE
 
-  Pixel* {.packed.} = object {.union.}
+  Pixel* {.union.} = object 
     ## how color is represented
     ## dependeding on which mode is defined at compile time, a different color format is used
     word*: uint32
@@ -75,7 +75,7 @@ type
 
   Transform* {.packed.} = tuple
     ## describes a tranformation applied to a buffer when it is drawn onto another buffer
-    ox, oy, r, sx, sy: float
+    ox, oy, r, sx, sy: float32
 
   Buffer* = ref object
     ## a collection of pixels that represents an image
@@ -108,7 +108,7 @@ proc color*(r, g, b: float): Pixel
   ## an alias for `pixel(r, g, b, 255)`
 proc rect*(x, y, w, h: int=0): Rect
   ## creates a rect object with the given fields
-proc transform*(ox, oy, r: float=0.0, sx, sy: float=1.0): Transform
+proc transform*(ox, oy, r: float32=0.0, sx, sy: float32=1.0): Transform
   ## creates a transform object with the given fields
 proc newBuffer*(w, h: int): Buffer
   ## creates a blank pixel buffer
@@ -337,7 +337,7 @@ proc color*(r, g, b: float): Pixel =
 proc rect*(x, y, w, h: int=0): Rect =
   (x: x, y: y, w: w, h: h)
 
-proc transform*(ox, oy, r: float=0.0, sx, sy: float=1.0): Transform =
+proc transform*(ox, oy, r: float32=0.0, sx, sy: float32=1.0): Transform =
   (ox: ox, oy: oy, r: r, sx: sx, sy: sy)
 
 proc clipRect(r: ptr Rect, to: Rect) =
@@ -916,7 +916,7 @@ proc drawBufferRotatedScaled(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: 
 proc drawBuffer*(buf: Buffer, src: Buffer, x, y: int, sub: Rect, t: Transform) =
   var (x, y, t) = (x, y, t)
   # Move rotation value into 0..PI2 range
-  t.r = fmod(fmod(t.r, PI2) + PI2, PI2)
+  t.r = ((t.r mod PI2) + PI2) mod PI2
   # Not rotated or scaled? apply offset and draw basic
   if t.r == 0 and t.sx == 1 and t.sy == 1:
     x = (x.float - t.ox).int; y = (y.float - t.oy).int
@@ -1110,7 +1110,7 @@ proc render*(font: Font, txt: string): Buffer =
   var
     w, h: cint = 0
     txt = txt
-  if txt == nil or txt.len == 0: txt = " "
+  if txt.len == 0: txt = " "
   let bitmap = ttf_render(font, txt.cstring, w, h);
   if bitmap == nil:
     raise newException(FontError, "could not render text")

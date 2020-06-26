@@ -8,7 +8,7 @@ import
   sdl2/sdl,
   ../src/suffer,
   random, math,
-  palette, tables, strutils
+  palette, tables
   
 from timer import nil
 
@@ -48,57 +48,57 @@ proc draw_noise(buf: Buffer): bool =
   testBuffer.noise(rand(int32.high).uint32, 0, 255, false)
   buf.copyPixels(testBuffer, 0, 0, 4.0, 4.0)
 
-proc draw_flood_fill(buf: Buffer): bool =
+proc draw_flood_fill(buf: Buffer): bool {.locks: 0.} =
   let color = testBuffer.getPixel(0, 0)
   var fill = random_color()
   while fill == color: fill = random_color()
   testBuffer.floodFill(fill, 0, 0)
   buf.copyPixels(testBuffer, 0, 0, 4.0, 4.0)
 
-proc draw_pixel(buf: Buffer): bool =
+proc draw_pixel(buf: Buffer): bool {.locks: 0.} =
   testBuffer.drawPixel(random_color(), rand(128), rand(128))
-  buf.drawBuffer(testBuffer, 0, 0, (0.0, 0.0, 0.0, 4.0, 4.0, ))
+  buf.drawBuffer(testBuffer, 0, 0, transform(0.0, 0.0, 0.0, 4.0, 4.0, ))
 
-proc draw_line(buf: Buffer): bool =
+proc draw_line(buf: Buffer): bool {.locks: 0.} =
   discard testBuffer
   result = true
   buf.drawLine(random_color(), 512.rand(), 512.rand(), 512.rand(), 512.rand())
 
-proc draw_rect(buf: Buffer): bool =
+proc draw_rect(buf: Buffer): bool {.locks: 0.} =
   discard testBuffer
   result = true
   buf.drawRect(random_color(), 512.rand(), 512.rand(), 255.rand(), 255.rand())
 
-proc draw_box(buf: Buffer): bool =
+proc draw_box(buf: Buffer): bool {.locks: 0.} =
   discard testBuffer
   result = true
   buf.drawBox(random_color(), 512.rand(), 512.rand(), 255.rand(), 255.rand())
 
-proc draw_circle(buf: Buffer): bool =
+proc draw_circle(buf: Buffer): bool {.locks: 0.} =
   discard testBuffer
   result = true
   buf.drawCircle(random_color(), 512.rand(), 512.rand(), 255.rand())
 
-proc draw_ring(buf: Buffer): bool =
+proc draw_ring(buf: Buffer): bool {.locks: 0.} =
   discard testBuffer
   result = true
   buf.draw_ring(random_color(), 512.rand(), 512.rand(), 255.rand())
 
-proc draw_buffer_basic(buf: Buffer): bool =
+proc draw_buffer_basic(buf: Buffer): bool {.locks: 0.} =
   buf.drawBuffer(TEST_IMAGE, 0, 0)
 
-proc draw_buffer_scaled(buf: Buffer): bool =
+proc draw_buffer_scaled(buf: Buffer): bool {.locks: 0.} =
   let (sx, sy) = (
     ScreenW / TEST_IMAGE.w,
     ScreenH / TEST_IMAGE.h,
     )
-  buf.drawBuffer(TEST_IMAGE, 0, 0, (0.0, 0.0, 0.0, sx, sy))
+  buf.drawBuffer(TEST_IMAGE, 0, 0, transform(0.0, 0.0, 0.0, sx, sy))
 
 
-proc draw_buffer_rotate_scaled(buf: Buffer): bool =
+proc draw_buffer_rotate_scaled(buf: Buffer): bool {.locks: 0.} =
   ticks += 0.02; rot = (rot + 1.0);
   buf.drawBuffer(TEST_IMAGE, 255, 255,
-    (TEST_IMAGE.w.float / 2.0, TEST_IMAGE.h.float / 2.0, rot.degToRad(),
+    transform(TEST_IMAGE.w.float / 2.0, TEST_IMAGE.h.float / 2.0, rot.degToRad(),
     1.0 * ticks.sin().abs() + 0.4,
     1.0 * ticks.sin().abs() + 0.4))
 
@@ -141,7 +141,7 @@ proc drawFps(buf: Buffer) =
   border.drawRect(color(0, 0, 0), 0, 0, maxWidth, fps.h)
   border.drawBox(color(0, 0, 0), 0, 0, maxWidth, fps.h)
   border.drawBuffer(fps, 4, 0)
-  buf.drawBuffer(border, 0, 0, (0.0, 0.0, 0.0, 2.0, 2.0))
+  buf.drawBuffer(border, 0, 0, transform(0.0, 0.0, 0.0, 2.0, 2.0))
 
 proc init(app: App): bool =
   randomize()
